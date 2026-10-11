@@ -32,11 +32,11 @@ npm run test:all
 - `components/ui/` — controlos e elementos visuais reutilizáveis.
 - `context/` — estado persistente do tema e do idioma.
 - `data/` — conteúdo bilingue e tipos.
-- `lib/theme-paint.ts` — tipos e geração determinística dos parâmetros da animação.
+- `lib/theme-paint.ts` — geometria e temporização dos pontos de entrada do tema.
 - `styles/` — tokens, base, navegação, secções, animação, responsividade e acessibilidade.
 - `tests/` — testes de conteúdo, navegação e comportamento/estrutura do tema.
 - `espreitar/` — exemplos de referência; não fazem parte da aplicação principal.
 
 ## Tema claro/escuro
 
-A escolha de tema é aplicada e guardada imediatamente, sem esperar pela animação. A preferência inicial respeita o tema do sistema e é carregada antes da primeira pintura da página. O efeito de tinta é decorativo, dura cerca de 1,2 segundos e fica atrás do conteúdo: não cobre controlos, não altera cores à força e não bloqueia novos cliques. Com `prefers-reduced-motion`, a mudança de tema mantém-se imediata e a animação é omitida.
+A preferência inicial respeita o tema do sistema e é carregada antes da primeira pintura da página. Em navegadores compatíveis, a página conserva o tema atual enquanto uma grelha de gotas revela progressivamente a captura do novo tema: cada círculo altera de imediato o fundo, o texto e os cartões dentro da sua área, incluindo painéis opacos. Não há camada translúcida nem mudança global antes ou depois da revelação. A animação dura cerca de um segundo; com `prefers-reduced-motion` ou sem suporte para View Transitions, o tema muda imediatamente.

@@ -4,27 +4,28 @@ import React, {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
   useSyncExternalStore,
 } from "react";
+import { flushSync } from "react-dom";
 import {
-  createPaintTarget,
-  PAINT_ANIMATION_DURATION_MS,
-  type PaintTarget,
+  applyThemeDropVariables,
+  clearThemeDropVariables,
+  createThemeTransition,
   type ThemeMode,
+  THEME_DROP_COUNT,
 } from "@/lib/theme-paint";
 
 interface ThemeContextValue {
   theme: ThemeMode;
-  paintTarget: PaintTarget | null;
-  paintId: number;
   changeTheme: (nextTheme: ThemeMode) => void;
 }
 
 const THEME_STORAGE_KEY = "azam-portfolio-theme";
 const themeListeners = new Set<() => void>();
+
+let activeViewTransition: ViewTransition | null = null;
+let activeTransitionVersion = 0;
 
 function readStoredTheme(): ThemeMode | null {
   try {
@@ -97,10 +98,18 @@ function applyTheme(theme: ThemeMode) {
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   } catch {
-    // Keep the in-memory theme working even when storage is unavailable.
+    // Keep the in-memory theme working when storage is unavailable.
   }
 
   notifyThemeListeners();
+}
+
+function cleanupThemeTransition(root: HTMLElement, version: number) {
+  if (version !== activeTransitionVersion) return;
+
+  clearThemeDropVariables(root, THEME_DROP_COUNT);
+  root.classList.remove("theme-transitioning");
+  activeViewTransition = null;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -111,44 +120,58 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     getThemeSnapshot,
     getServerThemeSnapshot,
   );
-  const [paintTarget, setPaintTarget] = useState<PaintTarget | null>(null);
-  const [paintId, setPaintId] = useState(0);
-
-  useEffect(() => {
-    if (!paintTarget) return;
-
-    const timeout = window.setTimeout(
-      () => setPaintTarget(null),
-      PAINT_ANIMATION_DURATION_MS,
-    );
-
-    return () => window.clearTimeout(timeout);
-  }, [paintTarget]);
 
   const changeTheme = useCallback((nextTheme: ThemeMode) => {
     if (nextTheme === getThemeSnapshot()) return;
 
-    // Update the document and saved preference before starting the decoration.
-    // The animation never gates or delays the actual theme change.
-    applyTheme(nextTheme);
-
+    const root = document.documentElement;
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    if (prefersReducedMotion) {
-      setPaintTarget(null);
+    if (prefersReducedMotion || typeof document.startViewTransition !== "function") {
+      activeViewTransition?.skipTransition();
+      activeViewTransition = null;
+      activeTransitionVersion += 1;
+      clearThemeDropVariables(root, THEME_DROP_COUNT);
+      root.classList.remove("theme-transitioning");
+      applyTheme(nextTheme);
       return;
     }
 
-    setPaintId((currentId) => currentId + 1);
-    setPaintTarget(createPaintTarget(nextTheme));
+    const transition = createThemeTransition(
+      nextTheme,
+      window.innerWidth,
+      window.innerHeight,
+    );
+
+    activeViewTransition?.skipTransition();
+    activeViewTransition = null;
+    const version = ++activeTransitionVersion;
+
+    applyThemeDropVariables(root, transition.drops);
+    root.classList.add("theme-transitioning");
+
+    let viewTransition: ViewTransition;
+
+    try {
+      viewTransition = document.startViewTransition(() => {
+        flushSync(() => applyTheme(nextTheme));
+      });
+    } catch {
+      applyTheme(nextTheme);
+      cleanupThemeTransition(root, version);
+      return;
+    }
+
+    activeViewTransition = viewTransition;
+    void viewTransition.finished.then(
+      () => cleanupThemeTransition(root, version),
+      () => cleanupThemeTransition(root, version),
+    );
   }, []);
 
-  const value = useMemo(
-    () => ({ theme, paintTarget, paintId, changeTheme }),
-    [theme, paintTarget, paintId, changeTheme],
-  );
+  const value = useMemo(() => ({ theme, changeTheme }), [theme, changeTheme]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

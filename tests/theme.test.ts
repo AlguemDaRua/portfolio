@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import {
-  createPaintTarget,
-  PAINT_ANIMATION_DURATION_MS,
-  PAINT_BLOB_PATHS,
+  applyThemeDropVariables,
+  clearThemeDropVariables,
+  createThemeTransition,
+  THEME_DROP_COUNT,
+  THEME_TRANSITION_DURATION_MS,
 } from "../lib/theme-paint";
 
 const rootDir = path.resolve(__dirname, "..");
@@ -41,44 +43,77 @@ test("Theme tokens are centralized and cover both color schemes", () => {
   );
 });
 
-test("Theme paint stays behind the interface and respects reduced motion", () => {
+test("Theme changes are revealed locally through non-translucent page snapshots", () => {
   const paintStyles = readProjectFile("styles/theme-transition.css");
-  const navigationStyles = readProjectFile("styles/navigation.css");
   const accessibilityStyles = readProjectFile("styles/accessibility.css");
   const provider = readProjectFile("context/ThemeContext.tsx");
+  const shell = readProjectFile("components/layout/PortfolioShell.tsx");
+  const nextConfig = readProjectFile("next.config.ts");
 
-  assert.match(paintStyles, /\.theme-paint\s*\{[^}]*z-index:\s*1/);
-  assert.match(navigationStyles, /\.site-main\s*\{[^}]*z-index:\s*2/);
-  assert.match(accessibilityStyles, /prefers-reduced-motion:\s*reduce/);
+  assert.match(paintStyles, /::view-transition-new\(root\)/);
+  assert.match(paintStyles, /mask-image:[\s\S]*?radial-gradient/);
+  assert.match(paintStyles, /mask-composite:\s*add/);
+  assert.match(paintStyles, /html\.theme-transitioning[\s\S]*?transition:\s*none/);
+  assert.equal((paintStyles.match(/@property --theme-drop-radius-\d+/g) ?? []).length, THEME_DROP_COUNT);
+  assert.equal((paintStyles.match(/@keyframes theme-drop-\d+/g) ?? []).length, THEME_DROP_COUNT);
+  assert.doesNotMatch(paintStyles, /\.theme-paint|mix-blend-mode|opacity:\s*0\.\d+/);
+
+  assert.match(provider, /document\.startViewTransition/);
+  assert.match(provider, /flushSync\(\(\) => applyTheme\(nextTheme\)\)/);
   assert.match(provider, /prefers-reduced-motion:\s*reduce/);
-  assert.doesNotMatch(paintStyles, /mix-blend-mode|!important/);
-  assert.doesNotMatch(provider, /2300|2980|switchTimer/);
-
-  const applyThemeIndex = provider.indexOf("applyTheme(nextTheme)");
-  const startPaintIndex = provider.indexOf("setPaintTarget(", applyThemeIndex);
-  assert.ok(applyThemeIndex >= 0, "Theme changes must update the document");
-  assert.ok(
-    startPaintIndex > applyThemeIndex,
-    "The theme must be applied before the decorative paint starts",
-  );
+  assert.match(provider, /clearThemeDropVariables/);
+  assert.doesNotMatch(shell, /ThemePaintOverlay|PaintBlob/);
+  assert.match(accessibilityStyles, /prefers-reduced-motion:\s*reduce/);
+  assert.match(nextConfig, /allowedDevOrigins:\s*\["\*\.e2b\.app"\]/);
+  assert.match(nextConfig, /turbopack:\s*\{\s*root:\s*projectRoot/);
 });
 
-test("Paint data is bounded, deterministic when seeded, and fast enough to feel immediate", () => {
-  const firstTarget = createPaintTarget("dark", () => 0.5);
-  const secondTarget = createPaintTarget("dark", () => 0.5);
+test("Theme drops cover the viewport with bounded, deterministic timing", () => {
+  const firstTransition = createThemeTransition("dark", 1440, 900, () => 0.5);
+  const secondTransition = createThemeTransition("dark", 1440, 900, () => 0.5);
 
-  assert.deepEqual(firstTarget, secondTarget);
-  assert.equal(firstTarget.theme, "dark");
-  assert.equal(firstTarget.splashes.length, 16);
-  assert.ok(PAINT_ANIMATION_DURATION_MS <= 1_250);
-  assert.ok(PAINT_BLOB_PATHS.length >= 1);
-  assert.ok(firstTarget.sheet.duration <= PAINT_ANIMATION_DURATION_MS);
+  assert.deepEqual(firstTransition, secondTransition);
+  assert.equal(firstTransition.theme, "dark");
+  assert.equal(firstTransition.drops.length, THEME_DROP_COUNT);
+  assert.ok(THEME_TRANSITION_DURATION_MS <= 1_250);
 
-  for (const splash of firstTarget.splashes) {
-    assert.ok(splash.variant >= 0 && splash.variant < PAINT_BLOB_PATHS.length);
-    assert.ok(splash.duration > 0);
-    assert.ok(splash.delay + splash.duration < PAINT_ANIMATION_DURATION_MS);
+  const coveredCells = new Set<string>();
+  for (const drop of firstTransition.drops) {
+    assert.ok(drop.x >= 0 && drop.x <= 100);
+    assert.ok(drop.y >= 0 && drop.y <= 100);
+    assert.ok(drop.maxRadius > drop.impactRadius);
+    assert.ok(drop.impactRadius > 0);
+    assert.ok(drop.delay >= 0);
+    assert.ok(drop.duration >= 580 && drop.duration <= 700);
+    assert.ok(drop.delay + drop.duration <= THEME_TRANSITION_DURATION_MS);
+
+    coveredCells.add(`${Math.floor(drop.x / 25)}-${Math.floor(drop.y / (100 / 3))}`);
   }
+  assert.equal(coveredCells.size, THEME_DROP_COUNT, "Drops should start in separate page regions");
+});
+
+test("Drop CSS variables are set and cleared without retaining stale transition data", () => {
+  const values = new Map<string, string>();
+  const removed: string[] = [];
+  const fakeRoot = {
+    style: {
+      setProperty: (name: string, value: string) => values.set(name, value),
+      removeProperty: (name: string) => {
+        removed.push(name);
+        values.delete(name);
+      },
+    },
+  } as unknown as HTMLElement;
+  const transition = createThemeTransition("light", 800, 600, () => 0.4);
+
+  applyThemeDropVariables(fakeRoot, transition.drops);
+  assert.equal(values.get("--theme-drop-x-0"), `${transition.drops[0].x}%`);
+  assert.equal(values.get("--theme-drop-max-radius-0"), `${transition.drops[0].maxRadius}px`);
+  assert.equal(values.get(`--theme-drop-duration-${THEME_DROP_COUNT - 1}`), `${transition.drops.at(-1)?.duration}ms`);
+
+  clearThemeDropVariables(fakeRoot);
+  assert.equal(values.size, 0);
+  assert.equal(removed.length, THEME_DROP_COUNT * 6);
 });
 
 test("Global CSS is split into named style responsibilities", () => {

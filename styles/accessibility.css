@@ -6,10 +6,10 @@
     transition-duration: 0.01ms !important;
   }
 
-  .theme-paint,
-  .paint-sheet,
-  .paint-splash {
+  ::view-transition-group(root),
+  ::view-transition-image-pair(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
     animation-duration: 0.01ms !important;
-    animation-delay: 0ms !important;
   }
 }

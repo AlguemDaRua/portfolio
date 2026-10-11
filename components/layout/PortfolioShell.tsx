@@ -9,7 +9,6 @@ import { ProjectsSection } from "@/components/sections/ProjectsSection";
 import { ResumeSection } from "@/components/sections/ResumeSection";
 import { SkillsSection } from "@/components/sections/SkillsSection";
 import { BackToTop } from "@/components/ui/BackToTop";
-import { ThemePaintOverlay } from "@/components/ui/ThemePaintOverlay";
 import { SideRail } from "./SideRail";
 
 function PortfolioContent() {
@@ -18,7 +17,6 @@ function PortfolioContent() {
 
   return (
     <div className="site-shell" data-theme={theme}>
-      <ThemePaintOverlay />
       <SideRail />
       <main className="site-main" lang={locale} id="top">
         <HeroSection />

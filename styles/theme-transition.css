@@ -1,98 +1,267 @@
-/*
- * The theme itself changes immediately. This low-opacity accent paint is a
- * purely decorative layer, kept behind the portfolio content so it can never
- * obscure text, controls, or keyboard focus.
- */
-.theme-paint {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  overflow: hidden;
-  pointer-events: none;
-  animation: paint-release 170ms ease-out 1010ms both;
+/* The old page remains visible while the new-theme snapshot is revealed by drops. */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: none !important;
 }
 
-.paint-sheet,
-.paint-splash {
-  position: absolute;
-  display: block;
-  overflow: visible;
-  color: var(--accent);
-  fill: currentColor;
-  fill-opacity: 0.14;
-  pointer-events: none;
-  will-change: transform, opacity;
+::view-transition-group(root),
+::view-transition-image-pair(root) {
+  animation: none;
 }
 
-.paint-sheet {
-  z-index: 0;
-  transform: translate(-50%, -50%) scale(0.01) rotate(var(--paint-turn));
-  transform-origin: center;
-  animation: paint-sheet-spread var(--sheet-duration, 980ms)
-    cubic-bezier(0.18, 0.7, 0.18, 1) var(--sheet-delay, 0ms) both;
+::view-transition-old(root) {
+  animation: none;
 }
 
-.paint-splash {
-  z-index: 1;
-  transform: translate(-50%, -150%) scale(0.025, 0.1)
-    rotate(var(--paint-turn));
-  transform-origin: center;
-  opacity: 0;
-  animation: paint-splatter var(--paint-duration, 620ms)
-    cubic-bezier(0.16, 0.7, 0.22, 1) var(--paint-delay, 0ms) both;
+@property --theme-drop-radius-0 {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
 }
 
-@keyframes paint-sheet-spread {
+@property --theme-drop-radius-1 {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --theme-drop-radius-2 {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --theme-drop-radius-3 {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --theme-drop-radius-4 {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --theme-drop-radius-5 {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --theme-drop-radius-6 {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --theme-drop-radius-7 {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --theme-drop-radius-8 {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --theme-drop-radius-9 {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --theme-drop-radius-10 {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --theme-drop-radius-11 {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+::view-transition-new(root) {
+  mask-image:
+    radial-gradient(circle var(--theme-drop-radius-0, 0px) at var(--theme-drop-x-0, 50%) var(--theme-drop-y-0, 50%), #000 99%, transparent 100%),
+    radial-gradient(circle var(--theme-drop-radius-1, 0px) at var(--theme-drop-x-1, 50%) var(--theme-drop-y-1, 50%), #000 99%, transparent 100%),
+    radial-gradient(circle var(--theme-drop-radius-2, 0px) at var(--theme-drop-x-2, 50%) var(--theme-drop-y-2, 50%), #000 99%, transparent 100%),
+    radial-gradient(circle var(--theme-drop-radius-3, 0px) at var(--theme-drop-x-3, 50%) var(--theme-drop-y-3, 50%), #000 99%, transparent 100%),
+    radial-gradient(circle var(--theme-drop-radius-4, 0px) at var(--theme-drop-x-4, 50%) var(--theme-drop-y-4, 50%), #000 99%, transparent 100%),
+    radial-gradient(circle var(--theme-drop-radius-5, 0px) at var(--theme-drop-x-5, 50%) var(--theme-drop-y-5, 50%), #000 99%, transparent 100%),
+    radial-gradient(circle var(--theme-drop-radius-6, 0px) at var(--theme-drop-x-6, 50%) var(--theme-drop-y-6, 50%), #000 99%, transparent 100%),
+    radial-gradient(circle var(--theme-drop-radius-7, 0px) at var(--theme-drop-x-7, 50%) var(--theme-drop-y-7, 50%), #000 99%, transparent 100%),
+    radial-gradient(circle var(--theme-drop-radius-8, 0px) at var(--theme-drop-x-8, 50%) var(--theme-drop-y-8, 50%), #000 99%, transparent 100%),
+    radial-gradient(circle var(--theme-drop-radius-9, 0px) at var(--theme-drop-x-9, 50%) var(--theme-drop-y-9, 50%), #000 99%, transparent 100%),
+    radial-gradient(circle var(--theme-drop-radius-10, 0px) at var(--theme-drop-x-10, 50%) var(--theme-drop-y-10, 50%), #000 99%, transparent 100%),
+    radial-gradient(circle var(--theme-drop-radius-11, 0px) at var(--theme-drop-x-11, 50%) var(--theme-drop-y-11, 50%), #000 99%, transparent 100%);
+  mask-mode: alpha;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: 100% 100%;
+  mask-composite: add;
+  -webkit-mask-composite: source-over;
+  animation:
+    theme-drop-0 var(--theme-drop-duration-0, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-0, 0ms) both,
+    theme-drop-1 var(--theme-drop-duration-1, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-1, 0ms) both,
+    theme-drop-2 var(--theme-drop-duration-2, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-2, 0ms) both,
+    theme-drop-3 var(--theme-drop-duration-3, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-3, 0ms) both,
+    theme-drop-4 var(--theme-drop-duration-4, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-4, 0ms) both,
+    theme-drop-5 var(--theme-drop-duration-5, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-5, 0ms) both,
+    theme-drop-6 var(--theme-drop-duration-6, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-6, 0ms) both,
+    theme-drop-7 var(--theme-drop-duration-7, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-7, 0ms) both,
+    theme-drop-8 var(--theme-drop-duration-8, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-8, 0ms) both,
+    theme-drop-9 var(--theme-drop-duration-9, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-9, 0ms) both,
+    theme-drop-10 var(--theme-drop-duration-10, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-10, 0ms) both,
+    theme-drop-11 var(--theme-drop-duration-11, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-11, 0ms) both;
+}
+
+@keyframes theme-drop-0 {
   0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.01) rotate(var(--paint-turn));
+    --theme-drop-radius-0: 0px;
   }
-  12% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(0.08) rotate(var(--paint-turn));
-  }
-  40% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(0.92) rotate(var(--paint-turn));
-  }
-  72% {
-    transform: translate(-50%, -50%) scale(3.2) rotate(var(--paint-turn));
+  16% {
+    --theme-drop-radius-0: var(--theme-drop-impact-radius-0, 12px);
   }
   100% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(var(--sheet-grow, 5.8))
-      rotate(var(--paint-turn));
+    --theme-drop-radius-0: var(--theme-drop-max-radius-0, 320px);
   }
 }
 
-@keyframes paint-splatter {
+@keyframes theme-drop-1 {
   0% {
-    opacity: 0;
-    transform: translate(-50%, -150%) scale(0.025, 0.1)
-      rotate(var(--paint-turn));
+    --theme-drop-radius-1: 0px;
   }
-  14% {
-    opacity: 1;
-    transform: translate(-50%, -44%) scale(0.08, 0.38)
-      rotate(var(--paint-turn));
-  }
-  27% {
-    transform: translate(-50%, -50%) scale(1.12, 0.8)
-      rotate(var(--paint-turn));
-  }
-  42% {
-    transform: translate(-50%, -50%) scale(0.9, 1.12)
-      rotate(var(--paint-turn));
+  16% {
+    --theme-drop-radius-1: var(--theme-drop-impact-radius-1, 12px);
   }
   100% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(var(--paint-grow))
-      rotate(var(--paint-turn));
+    --theme-drop-radius-1: var(--theme-drop-max-radius-1, 320px);
   }
 }
 
-@keyframes paint-release {
-  to {
-    opacity: 0;
+@keyframes theme-drop-2 {
+  0% {
+    --theme-drop-radius-2: 0px;
+  }
+  16% {
+    --theme-drop-radius-2: var(--theme-drop-impact-radius-2, 12px);
+  }
+  100% {
+    --theme-drop-radius-2: var(--theme-drop-max-radius-2, 320px);
+  }
+}
+
+@keyframes theme-drop-3 {
+  0% {
+    --theme-drop-radius-3: 0px;
+  }
+  16% {
+    --theme-drop-radius-3: var(--theme-drop-impact-radius-3, 12px);
+  }
+  100% {
+    --theme-drop-radius-3: var(--theme-drop-max-radius-3, 320px);
+  }
+}
+
+@keyframes theme-drop-4 {
+  0% {
+    --theme-drop-radius-4: 0px;
+  }
+  16% {
+    --theme-drop-radius-4: var(--theme-drop-impact-radius-4, 12px);
+  }
+  100% {
+    --theme-drop-radius-4: var(--theme-drop-max-radius-4, 320px);
+  }
+}
+
+@keyframes theme-drop-5 {
+  0% {
+    --theme-drop-radius-5: 0px;
+  }
+  16% {
+    --theme-drop-radius-5: var(--theme-drop-impact-radius-5, 12px);
+  }
+  100% {
+    --theme-drop-radius-5: var(--theme-drop-max-radius-5, 320px);
+  }
+}
+
+@keyframes theme-drop-6 {
+  0% {
+    --theme-drop-radius-6: 0px;
+  }
+  16% {
+    --theme-drop-radius-6: var(--theme-drop-impact-radius-6, 12px);
+  }
+  100% {
+    --theme-drop-radius-6: var(--theme-drop-max-radius-6, 320px);
+  }
+}
+
+@keyframes theme-drop-7 {
+  0% {
+    --theme-drop-radius-7: 0px;
+  }
+  16% {
+    --theme-drop-radius-7: var(--theme-drop-impact-radius-7, 12px);
+  }
+  100% {
+    --theme-drop-radius-7: var(--theme-drop-max-radius-7, 320px);
+  }
+}
+
+@keyframes theme-drop-8 {
+  0% {
+    --theme-drop-radius-8: 0px;
+  }
+  16% {
+    --theme-drop-radius-8: var(--theme-drop-impact-radius-8, 12px);
+  }
+  100% {
+    --theme-drop-radius-8: var(--theme-drop-max-radius-8, 320px);
+  }
+}
+
+@keyframes theme-drop-9 {
+  0% {
+    --theme-drop-radius-9: 0px;
+  }
+  16% {
+    --theme-drop-radius-9: var(--theme-drop-impact-radius-9, 12px);
+  }
+  100% {
+    --theme-drop-radius-9: var(--theme-drop-max-radius-9, 320px);
+  }
+}
+
+@keyframes theme-drop-10 {
+  0% {
+    --theme-drop-radius-10: 0px;
+  }
+  16% {
+    --theme-drop-radius-10: var(--theme-drop-impact-radius-10, 12px);
+  }
+  100% {
+    --theme-drop-radius-10: var(--theme-drop-max-radius-10, 320px);
+  }
+}
+
+@keyframes theme-drop-11 {
+  0% {
+    --theme-drop-radius-11: 0px;
+  }
+  16% {
+    --theme-drop-radius-11: var(--theme-drop-impact-radius-11, 12px);
+  }
+  100% {
+    --theme-drop-radius-11: var(--theme-drop-max-radius-11, 320px);
   }
 }
