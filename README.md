@@ -39,4 +39,4 @@ npm run test:all
 
 ## Tema claro/escuro
 
-A preferência inicial respeita o tema do sistema e é carregada antes da primeira pintura da página. Em navegadores compatíveis, a página conserva o tema atual enquanto uma grelha de gotas revela progressivamente a captura do novo tema: cada círculo altera de imediato o fundo, o texto e os cartões dentro da sua área, incluindo painéis opacos. Não há camada translúcida nem mudança global antes ou depois da revelação. A animação dura cerca de um segundo; com `prefers-reduced-motion` ou sem suporte para View Transitions, o tema muda imediatamente.
+A preferência inicial respeita o tema do sistema e é carregada antes da primeira pintura da página. Em navegadores compatíveis, a página conserva o tema atual enquanto gotas com contornos orgânicos de tinta revelam progressivamente a captura do novo tema: cada gota altera de imediato o fundo, o texto e os cartões dentro da sua área, incluindo painéis opacos. Não há camada translúcida nem mudança global antes ou depois da revelação. A dispersão demora cerca de três segundos; com `prefers-reduced-motion` ou sem suporte às máscaras ou às View Transitions, o tema muda imediatamente.

@@ -112,6 +112,19 @@ function cleanupThemeTransition(root: HTMLElement, version: number) {
   activeViewTransition = null;
 }
 
+function supportsPaintMasks(): boolean {
+  if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return false;
+
+  const supportsMaskImage =
+    CSS.supports("mask-image", "linear-gradient(black, black)") ||
+    CSS.supports("-webkit-mask-image", "linear-gradient(black, black)");
+  const supportsMaskUnion =
+    CSS.supports("mask-composite", "add") ||
+    CSS.supports("-webkit-mask-composite", "source-over");
+
+  return supportsMaskImage && supportsMaskUnion && "registerProperty" in CSS;
+}
+
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -129,7 +142,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    if (prefersReducedMotion || typeof document.startViewTransition !== "function") {
+    if (
+      prefersReducedMotion ||
+      !supportsPaintMasks() ||
+      typeof document.startViewTransition !== "function"
+    ) {
       activeViewTransition?.skipTransition();
       activeViewTransition = null;
       activeTransitionVersion += 1;

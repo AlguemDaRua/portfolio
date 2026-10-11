@@ -1,4 +1,4 @@
-/* The old page remains visible while the new-theme snapshot is revealed by drops. */
+/* Keep the captured old theme in place; only organic mask shapes reveal the new one. */
 html.theme-transitioning,
 html.theme-transitioning *,
 html.theme-transitioning *::before,
@@ -89,44 +89,108 @@ html.theme-transitioning *::after {
 
 ::view-transition-new(root) {
   mask-image:
-    radial-gradient(circle var(--theme-drop-radius-0, 0px) at var(--theme-drop-x-0, 50%) var(--theme-drop-y-0, 50%), #000 99%, transparent 100%),
-    radial-gradient(circle var(--theme-drop-radius-1, 0px) at var(--theme-drop-x-1, 50%) var(--theme-drop-y-1, 50%), #000 99%, transparent 100%),
-    radial-gradient(circle var(--theme-drop-radius-2, 0px) at var(--theme-drop-x-2, 50%) var(--theme-drop-y-2, 50%), #000 99%, transparent 100%),
-    radial-gradient(circle var(--theme-drop-radius-3, 0px) at var(--theme-drop-x-3, 50%) var(--theme-drop-y-3, 50%), #000 99%, transparent 100%),
-    radial-gradient(circle var(--theme-drop-radius-4, 0px) at var(--theme-drop-x-4, 50%) var(--theme-drop-y-4, 50%), #000 99%, transparent 100%),
-    radial-gradient(circle var(--theme-drop-radius-5, 0px) at var(--theme-drop-x-5, 50%) var(--theme-drop-y-5, 50%), #000 99%, transparent 100%),
-    radial-gradient(circle var(--theme-drop-radius-6, 0px) at var(--theme-drop-x-6, 50%) var(--theme-drop-y-6, 50%), #000 99%, transparent 100%),
-    radial-gradient(circle var(--theme-drop-radius-7, 0px) at var(--theme-drop-x-7, 50%) var(--theme-drop-y-7, 50%), #000 99%, transparent 100%),
-    radial-gradient(circle var(--theme-drop-radius-8, 0px) at var(--theme-drop-x-8, 50%) var(--theme-drop-y-8, 50%), #000 99%, transparent 100%),
-    radial-gradient(circle var(--theme-drop-radius-9, 0px) at var(--theme-drop-x-9, 50%) var(--theme-drop-y-9, 50%), #000 99%, transparent 100%),
-    radial-gradient(circle var(--theme-drop-radius-10, 0px) at var(--theme-drop-x-10, 50%) var(--theme-drop-y-10, 50%), #000 99%, transparent 100%),
-    radial-gradient(circle var(--theme-drop-radius-11, 0px) at var(--theme-drop-x-11, 50%) var(--theme-drop-y-11, 50%), #000 99%, transparent 100%);
+    var(--theme-drop-mask-0, none),
+    var(--theme-drop-mask-1, none),
+    var(--theme-drop-mask-2, none),
+    var(--theme-drop-mask-3, none),
+    var(--theme-drop-mask-4, none),
+    var(--theme-drop-mask-5, none),
+    var(--theme-drop-mask-6, none),
+    var(--theme-drop-mask-7, none),
+    var(--theme-drop-mask-8, none),
+    var(--theme-drop-mask-9, none),
+    var(--theme-drop-mask-10, none),
+    var(--theme-drop-mask-11, none);
+  -webkit-mask-image:
+    var(--theme-drop-mask-0, none),
+    var(--theme-drop-mask-1, none),
+    var(--theme-drop-mask-2, none),
+    var(--theme-drop-mask-3, none),
+    var(--theme-drop-mask-4, none),
+    var(--theme-drop-mask-5, none),
+    var(--theme-drop-mask-6, none),
+    var(--theme-drop-mask-7, none),
+    var(--theme-drop-mask-8, none),
+    var(--theme-drop-mask-9, none),
+    var(--theme-drop-mask-10, none),
+    var(--theme-drop-mask-11, none);
+  mask-position:
+    calc(var(--theme-drop-x-0, 50%) - var(--theme-drop-radius-0, 0px)) calc(var(--theme-drop-y-0, 50%) - var(--theme-drop-radius-0, 0px)),
+    calc(var(--theme-drop-x-1, 50%) - var(--theme-drop-radius-1, 0px)) calc(var(--theme-drop-y-1, 50%) - var(--theme-drop-radius-1, 0px)),
+    calc(var(--theme-drop-x-2, 50%) - var(--theme-drop-radius-2, 0px)) calc(var(--theme-drop-y-2, 50%) - var(--theme-drop-radius-2, 0px)),
+    calc(var(--theme-drop-x-3, 50%) - var(--theme-drop-radius-3, 0px)) calc(var(--theme-drop-y-3, 50%) - var(--theme-drop-radius-3, 0px)),
+    calc(var(--theme-drop-x-4, 50%) - var(--theme-drop-radius-4, 0px)) calc(var(--theme-drop-y-4, 50%) - var(--theme-drop-radius-4, 0px)),
+    calc(var(--theme-drop-x-5, 50%) - var(--theme-drop-radius-5, 0px)) calc(var(--theme-drop-y-5, 50%) - var(--theme-drop-radius-5, 0px)),
+    calc(var(--theme-drop-x-6, 50%) - var(--theme-drop-radius-6, 0px)) calc(var(--theme-drop-y-6, 50%) - var(--theme-drop-radius-6, 0px)),
+    calc(var(--theme-drop-x-7, 50%) - var(--theme-drop-radius-7, 0px)) calc(var(--theme-drop-y-7, 50%) - var(--theme-drop-radius-7, 0px)),
+    calc(var(--theme-drop-x-8, 50%) - var(--theme-drop-radius-8, 0px)) calc(var(--theme-drop-y-8, 50%) - var(--theme-drop-radius-8, 0px)),
+    calc(var(--theme-drop-x-9, 50%) - var(--theme-drop-radius-9, 0px)) calc(var(--theme-drop-y-9, 50%) - var(--theme-drop-radius-9, 0px)),
+    calc(var(--theme-drop-x-10, 50%) - var(--theme-drop-radius-10, 0px)) calc(var(--theme-drop-y-10, 50%) - var(--theme-drop-radius-10, 0px)),
+    calc(var(--theme-drop-x-11, 50%) - var(--theme-drop-radius-11, 0px)) calc(var(--theme-drop-y-11, 50%) - var(--theme-drop-radius-11, 0px));
+  -webkit-mask-position:
+    calc(var(--theme-drop-x-0, 50%) - var(--theme-drop-radius-0, 0px)) calc(var(--theme-drop-y-0, 50%) - var(--theme-drop-radius-0, 0px)),
+    calc(var(--theme-drop-x-1, 50%) - var(--theme-drop-radius-1, 0px)) calc(var(--theme-drop-y-1, 50%) - var(--theme-drop-radius-1, 0px)),
+    calc(var(--theme-drop-x-2, 50%) - var(--theme-drop-radius-2, 0px)) calc(var(--theme-drop-y-2, 50%) - var(--theme-drop-radius-2, 0px)),
+    calc(var(--theme-drop-x-3, 50%) - var(--theme-drop-radius-3, 0px)) calc(var(--theme-drop-y-3, 50%) - var(--theme-drop-radius-3, 0px)),
+    calc(var(--theme-drop-x-4, 50%) - var(--theme-drop-radius-4, 0px)) calc(var(--theme-drop-y-4, 50%) - var(--theme-drop-radius-4, 0px)),
+    calc(var(--theme-drop-x-5, 50%) - var(--theme-drop-radius-5, 0px)) calc(var(--theme-drop-y-5, 50%) - var(--theme-drop-radius-5, 0px)),
+    calc(var(--theme-drop-x-6, 50%) - var(--theme-drop-radius-6, 0px)) calc(var(--theme-drop-y-6, 50%) - var(--theme-drop-radius-6, 0px)),
+    calc(var(--theme-drop-x-7, 50%) - var(--theme-drop-radius-7, 0px)) calc(var(--theme-drop-y-7, 50%) - var(--theme-drop-radius-7, 0px)),
+    calc(var(--theme-drop-x-8, 50%) - var(--theme-drop-radius-8, 0px)) calc(var(--theme-drop-y-8, 50%) - var(--theme-drop-radius-8, 0px)),
+    calc(var(--theme-drop-x-9, 50%) - var(--theme-drop-radius-9, 0px)) calc(var(--theme-drop-y-9, 50%) - var(--theme-drop-radius-9, 0px)),
+    calc(var(--theme-drop-x-10, 50%) - var(--theme-drop-radius-10, 0px)) calc(var(--theme-drop-y-10, 50%) - var(--theme-drop-radius-10, 0px)),
+    calc(var(--theme-drop-x-11, 50%) - var(--theme-drop-radius-11, 0px)) calc(var(--theme-drop-y-11, 50%) - var(--theme-drop-radius-11, 0px));
+  mask-size:
+    calc(var(--theme-drop-radius-0, 0px) + var(--theme-drop-radius-0, 0px)) calc(var(--theme-drop-radius-0, 0px) + var(--theme-drop-radius-0, 0px)),
+    calc(var(--theme-drop-radius-1, 0px) + var(--theme-drop-radius-1, 0px)) calc(var(--theme-drop-radius-1, 0px) + var(--theme-drop-radius-1, 0px)),
+    calc(var(--theme-drop-radius-2, 0px) + var(--theme-drop-radius-2, 0px)) calc(var(--theme-drop-radius-2, 0px) + var(--theme-drop-radius-2, 0px)),
+    calc(var(--theme-drop-radius-3, 0px) + var(--theme-drop-radius-3, 0px)) calc(var(--theme-drop-radius-3, 0px) + var(--theme-drop-radius-3, 0px)),
+    calc(var(--theme-drop-radius-4, 0px) + var(--theme-drop-radius-4, 0px)) calc(var(--theme-drop-radius-4, 0px) + var(--theme-drop-radius-4, 0px)),
+    calc(var(--theme-drop-radius-5, 0px) + var(--theme-drop-radius-5, 0px)) calc(var(--theme-drop-radius-5, 0px) + var(--theme-drop-radius-5, 0px)),
+    calc(var(--theme-drop-radius-6, 0px) + var(--theme-drop-radius-6, 0px)) calc(var(--theme-drop-radius-6, 0px) + var(--theme-drop-radius-6, 0px)),
+    calc(var(--theme-drop-radius-7, 0px) + var(--theme-drop-radius-7, 0px)) calc(var(--theme-drop-radius-7, 0px) + var(--theme-drop-radius-7, 0px)),
+    calc(var(--theme-drop-radius-8, 0px) + var(--theme-drop-radius-8, 0px)) calc(var(--theme-drop-radius-8, 0px) + var(--theme-drop-radius-8, 0px)),
+    calc(var(--theme-drop-radius-9, 0px) + var(--theme-drop-radius-9, 0px)) calc(var(--theme-drop-radius-9, 0px) + var(--theme-drop-radius-9, 0px)),
+    calc(var(--theme-drop-radius-10, 0px) + var(--theme-drop-radius-10, 0px)) calc(var(--theme-drop-radius-10, 0px) + var(--theme-drop-radius-10, 0px)),
+    calc(var(--theme-drop-radius-11, 0px) + var(--theme-drop-radius-11, 0px)) calc(var(--theme-drop-radius-11, 0px) + var(--theme-drop-radius-11, 0px));
+  -webkit-mask-size:
+    calc(var(--theme-drop-radius-0, 0px) + var(--theme-drop-radius-0, 0px)) calc(var(--theme-drop-radius-0, 0px) + var(--theme-drop-radius-0, 0px)),
+    calc(var(--theme-drop-radius-1, 0px) + var(--theme-drop-radius-1, 0px)) calc(var(--theme-drop-radius-1, 0px) + var(--theme-drop-radius-1, 0px)),
+    calc(var(--theme-drop-radius-2, 0px) + var(--theme-drop-radius-2, 0px)) calc(var(--theme-drop-radius-2, 0px) + var(--theme-drop-radius-2, 0px)),
+    calc(var(--theme-drop-radius-3, 0px) + var(--theme-drop-radius-3, 0px)) calc(var(--theme-drop-radius-3, 0px) + var(--theme-drop-radius-3, 0px)),
+    calc(var(--theme-drop-radius-4, 0px) + var(--theme-drop-radius-4, 0px)) calc(var(--theme-drop-radius-4, 0px) + var(--theme-drop-radius-4, 0px)),
+    calc(var(--theme-drop-radius-5, 0px) + var(--theme-drop-radius-5, 0px)) calc(var(--theme-drop-radius-5, 0px) + var(--theme-drop-radius-5, 0px)),
+    calc(var(--theme-drop-radius-6, 0px) + var(--theme-drop-radius-6, 0px)) calc(var(--theme-drop-radius-6, 0px) + var(--theme-drop-radius-6, 0px)),
+    calc(var(--theme-drop-radius-7, 0px) + var(--theme-drop-radius-7, 0px)) calc(var(--theme-drop-radius-7, 0px) + var(--theme-drop-radius-7, 0px)),
+    calc(var(--theme-drop-radius-8, 0px) + var(--theme-drop-radius-8, 0px)) calc(var(--theme-drop-radius-8, 0px) + var(--theme-drop-radius-8, 0px)),
+    calc(var(--theme-drop-radius-9, 0px) + var(--theme-drop-radius-9, 0px)) calc(var(--theme-drop-radius-9, 0px) + var(--theme-drop-radius-9, 0px)),
+    calc(var(--theme-drop-radius-10, 0px) + var(--theme-drop-radius-10, 0px)) calc(var(--theme-drop-radius-10, 0px) + var(--theme-drop-radius-10, 0px)),
+    calc(var(--theme-drop-radius-11, 0px) + var(--theme-drop-radius-11, 0px)) calc(var(--theme-drop-radius-11, 0px) + var(--theme-drop-radius-11, 0px));
   mask-mode: alpha;
-  mask-position: center;
   mask-repeat: no-repeat;
-  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
   mask-composite: add;
   -webkit-mask-composite: source-over;
   animation:
-    theme-drop-0 var(--theme-drop-duration-0, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-0, 0ms) both,
-    theme-drop-1 var(--theme-drop-duration-1, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-1, 0ms) both,
-    theme-drop-2 var(--theme-drop-duration-2, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-2, 0ms) both,
-    theme-drop-3 var(--theme-drop-duration-3, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-3, 0ms) both,
-    theme-drop-4 var(--theme-drop-duration-4, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-4, 0ms) both,
-    theme-drop-5 var(--theme-drop-duration-5, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-5, 0ms) both,
-    theme-drop-6 var(--theme-drop-duration-6, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-6, 0ms) both,
-    theme-drop-7 var(--theme-drop-duration-7, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-7, 0ms) both,
-    theme-drop-8 var(--theme-drop-duration-8, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-8, 0ms) both,
-    theme-drop-9 var(--theme-drop-duration-9, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-9, 0ms) both,
-    theme-drop-10 var(--theme-drop-duration-10, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-10, 0ms) both,
-    theme-drop-11 var(--theme-drop-duration-11, 640ms) cubic-bezier(0.16, 0.7, 0.22, 1) var(--theme-drop-delay-11, 0ms) both;
+    theme-drop-0 var(--theme-drop-duration-0, 2250ms) cubic-bezier(0.38, 0.02, 0.3, 1) var(--theme-drop-delay-0, 0ms) both,
+    theme-drop-1 var(--theme-drop-duration-1, 2250ms) cubic-bezier(0.38, 0.02, 0.3, 1) var(--theme-drop-delay-1, 0ms) both,
+    theme-drop-2 var(--theme-drop-duration-2, 2250ms) cubic-bezier(0.38, 0.02, 0.3, 1) var(--theme-drop-delay-2, 0ms) both,
+    theme-drop-3 var(--theme-drop-duration-3, 2250ms) cubic-bezier(0.38, 0.02, 0.3, 1) var(--theme-drop-delay-3, 0ms) both,
+    theme-drop-4 var(--theme-drop-duration-4, 2250ms) cubic-bezier(0.38, 0.02, 0.3, 1) var(--theme-drop-delay-4, 0ms) both,
+    theme-drop-5 var(--theme-drop-duration-5, 2250ms) cubic-bezier(0.38, 0.02, 0.3, 1) var(--theme-drop-delay-5, 0ms) both,
+    theme-drop-6 var(--theme-drop-duration-6, 2250ms) cubic-bezier(0.38, 0.02, 0.3, 1) var(--theme-drop-delay-6, 0ms) both,
+    theme-drop-7 var(--theme-drop-duration-7, 2250ms) cubic-bezier(0.38, 0.02, 0.3, 1) var(--theme-drop-delay-7, 0ms) both,
+    theme-drop-8 var(--theme-drop-duration-8, 2250ms) cubic-bezier(0.38, 0.02, 0.3, 1) var(--theme-drop-delay-8, 0ms) both,
+    theme-drop-9 var(--theme-drop-duration-9, 2250ms) cubic-bezier(0.38, 0.02, 0.3, 1) var(--theme-drop-delay-9, 0ms) both,
+    theme-drop-10 var(--theme-drop-duration-10, 2250ms) cubic-bezier(0.38, 0.02, 0.3, 1) var(--theme-drop-delay-10, 0ms) both,
+    theme-drop-11 var(--theme-drop-duration-11, 2250ms) cubic-bezier(0.38, 0.02, 0.3, 1) var(--theme-drop-delay-11, 0ms) both;
 }
 
 @keyframes theme-drop-0 {
   0% {
     --theme-drop-radius-0: 0px;
   }
-  16% {
+  9% {
     --theme-drop-radius-0: var(--theme-drop-impact-radius-0, 12px);
   }
   100% {
@@ -138,7 +202,7 @@ html.theme-transitioning *::after {
   0% {
     --theme-drop-radius-1: 0px;
   }
-  16% {
+  9% {
     --theme-drop-radius-1: var(--theme-drop-impact-radius-1, 12px);
   }
   100% {
@@ -150,7 +214,7 @@ html.theme-transitioning *::after {
   0% {
     --theme-drop-radius-2: 0px;
   }
-  16% {
+  9% {
     --theme-drop-radius-2: var(--theme-drop-impact-radius-2, 12px);
   }
   100% {
@@ -162,7 +226,7 @@ html.theme-transitioning *::after {
   0% {
     --theme-drop-radius-3: 0px;
   }
-  16% {
+  9% {
     --theme-drop-radius-3: var(--theme-drop-impact-radius-3, 12px);
   }
   100% {
@@ -174,7 +238,7 @@ html.theme-transitioning *::after {
   0% {
     --theme-drop-radius-4: 0px;
   }
-  16% {
+  9% {
     --theme-drop-radius-4: var(--theme-drop-impact-radius-4, 12px);
   }
   100% {
@@ -186,7 +250,7 @@ html.theme-transitioning *::after {
   0% {
     --theme-drop-radius-5: 0px;
   }
-  16% {
+  9% {
     --theme-drop-radius-5: var(--theme-drop-impact-radius-5, 12px);
   }
   100% {
@@ -198,7 +262,7 @@ html.theme-transitioning *::after {
   0% {
     --theme-drop-radius-6: 0px;
   }
-  16% {
+  9% {
     --theme-drop-radius-6: var(--theme-drop-impact-radius-6, 12px);
   }
   100% {
@@ -210,7 +274,7 @@ html.theme-transitioning *::after {
   0% {
     --theme-drop-radius-7: 0px;
   }
-  16% {
+  9% {
     --theme-drop-radius-7: var(--theme-drop-impact-radius-7, 12px);
   }
   100% {
@@ -222,7 +286,7 @@ html.theme-transitioning *::after {
   0% {
     --theme-drop-radius-8: 0px;
   }
-  16% {
+  9% {
     --theme-drop-radius-8: var(--theme-drop-impact-radius-8, 12px);
   }
   100% {
@@ -234,7 +298,7 @@ html.theme-transitioning *::after {
   0% {
     --theme-drop-radius-9: 0px;
   }
-  16% {
+  9% {
     --theme-drop-radius-9: var(--theme-drop-impact-radius-9, 12px);
   }
   100% {
@@ -246,7 +310,7 @@ html.theme-transitioning *::after {
   0% {
     --theme-drop-radius-10: 0px;
   }
-  16% {
+  9% {
     --theme-drop-radius-10: var(--theme-drop-impact-radius-10, 12px);
   }
   100% {
@@ -258,7 +322,7 @@ html.theme-transitioning *::after {
   0% {
     --theme-drop-radius-11: 0px;
   }
-  16% {
+  9% {
     --theme-drop-radius-11: var(--theme-drop-impact-radius-11, 12px);
   }
   100% {

@@ -51,7 +51,8 @@ test("Theme changes are revealed locally through non-translucent page snapshots"
   const nextConfig = readProjectFile("next.config.ts");
 
   assert.match(paintStyles, /::view-transition-new\(root\)/);
-  assert.match(paintStyles, /mask-image:[\s\S]*?radial-gradient/);
+  assert.match(paintStyles, /mask-image:[\s\S]*?var\(--theme-drop-mask-0/);
+  assert.match(paintStyles, /mask-size:[\s\S]*?--theme-drop-radius-0/);
   assert.match(paintStyles, /mask-composite:\s*add/);
   assert.match(paintStyles, /html\.theme-transitioning[\s\S]*?transition:\s*none/);
   assert.equal((paintStyles.match(/@property --theme-drop-radius-\d+/g) ?? []).length, THEME_DROP_COUNT);
@@ -59,6 +60,7 @@ test("Theme changes are revealed locally through non-translucent page snapshots"
   assert.doesNotMatch(paintStyles, /\.theme-paint|mix-blend-mode|opacity:\s*0\.\d+/);
 
   assert.match(provider, /document\.startViewTransition/);
+  assert.match(provider, /supportsPaintMasks/);
   assert.match(provider, /flushSync\(\(\) => applyTheme\(nextTheme\)\)/);
   assert.match(provider, /prefers-reduced-motion:\s*reduce/);
   assert.match(provider, /clearThemeDropVariables/);
@@ -71,23 +73,32 @@ test("Theme changes are revealed locally through non-translucent page snapshots"
 test("Theme drops cover the viewport with bounded, deterministic timing", () => {
   const firstTransition = createThemeTransition("dark", 1440, 900, () => 0.5);
   const secondTransition = createThemeTransition("dark", 1440, 900, () => 0.5);
+  const slowestTransition = createThemeTransition("light", 1440, 900, () => 0.999999);
 
   assert.deepEqual(firstTransition, secondTransition);
   assert.equal(firstTransition.theme, "dark");
   assert.equal(firstTransition.drops.length, THEME_DROP_COUNT);
-  assert.ok(THEME_TRANSITION_DURATION_MS <= 1_250);
+  assert.ok(THEME_TRANSITION_DURATION_MS >= 2_800);
+  assert.ok(THEME_TRANSITION_DURATION_MS <= 3_200);
+  assert.ok(
+    Math.max(...slowestTransition.drops.map((drop) => drop.delay + drop.duration)) <=
+      THEME_TRANSITION_DURATION_MS,
+  );
 
   const coveredCells = new Set<string>();
   for (const drop of firstTransition.drops) {
-    assert.ok(drop.x >= 0 && drop.x <= 100);
-    assert.ok(drop.y >= 0 && drop.y <= 100);
+    assert.ok(drop.centerX >= 0 && drop.centerX <= 1_440);
+    assert.ok(drop.centerY >= 0 && drop.centerY <= 900);
     assert.ok(drop.maxRadius > drop.impactRadius);
     assert.ok(drop.impactRadius > 0);
     assert.ok(drop.delay >= 0);
-    assert.ok(drop.duration >= 580 && drop.duration <= 700);
+    assert.ok(drop.duration >= 2_050 && drop.duration <= 2_350);
     assert.ok(drop.delay + drop.duration <= THEME_TRANSITION_DURATION_MS);
+    assert.ok(drop.shape >= 0 && drop.shape < 3);
 
-    coveredCells.add(`${Math.floor(drop.x / 25)}-${Math.floor(drop.y / (100 / 3))}`);
+    coveredCells.add(
+      `${Math.floor(drop.centerX / 360)}-${Math.floor(drop.centerY / 300)}`,
+    );
   }
   assert.equal(coveredCells.size, THEME_DROP_COUNT, "Drops should start in separate page regions");
 });
@@ -107,13 +118,18 @@ test("Drop CSS variables are set and cleared without retaining stale transition 
   const transition = createThemeTransition("light", 800, 600, () => 0.4);
 
   applyThemeDropVariables(fakeRoot, transition.drops);
-  assert.equal(values.get("--theme-drop-x-0"), `${transition.drops[0].x}%`);
+  assert.equal(values.get("--theme-drop-x-0"), `${transition.drops[0].centerX}px`);
+  assert.equal(values.get("--theme-drop-y-0"), `${transition.drops[0].centerY}px`);
+  const maskValue = values.get("--theme-drop-mask-0");
+  assert.equal(maskValue?.startsWith('url("data:image/svg+xml,'), true);
+  const encodedMask = maskValue?.match(/svg\+xml,([^\"]+)/)?.[1] ?? "";
+  assert.match(decodeURIComponent(encodedMask), /<svg[\s\S]*<path d=/);
   assert.equal(values.get("--theme-drop-max-radius-0"), `${transition.drops[0].maxRadius}px`);
   assert.equal(values.get(`--theme-drop-duration-${THEME_DROP_COUNT - 1}`), `${transition.drops.at(-1)?.duration}ms`);
 
   clearThemeDropVariables(fakeRoot);
   assert.equal(values.size, 0);
-  assert.equal(removed.length, THEME_DROP_COUNT * 6);
+  assert.equal(removed.length, THEME_DROP_COUNT * 7);
 });
 
 test("Global CSS is split into named style responsibilities", () => {
