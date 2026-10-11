@@ -1,65 +1,57 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
-
-export interface PaintSplash {
-  x: number;
-  y: number;
-  size: number;
-  grow: number;
-  turn: number;
-  delay: number;
-  duration: number;
-  variant: number;
-}
-
-export interface PaintSheet {
-  x: number;
-  y: number;
-  size: number;
-  grow: number;
-  turn: number;
-  delay: number;
-  variant: number;
-}
-
-export interface PaintTarget {
-  theme: "light" | "dark";
-  splashes: PaintSplash[];
-  sheet: PaintSheet;
-}
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import {
+  createPaintTarget,
+  PAINT_ANIMATION_DURATION_MS,
+  type PaintTarget,
+  type ThemeMode,
+} from "@/lib/theme-paint";
 
 interface ThemeContextValue {
-  theme: "light" | "dark";
+  theme: ThemeMode;
   paintTarget: PaintTarget | null;
-  isPainting: boolean;
-  changeTheme: (nextTheme: "light" | "dark") => void;
+  paintId: number;
+  changeTheme: (nextTheme: ThemeMode) => void;
 }
 
 const THEME_STORAGE_KEY = "azam-portfolio-theme";
 const themeListeners = new Set<() => void>();
 
-function subscribeTheme(callback: () => void) {
-  themeListeners.add(callback);
-  window.addEventListener("storage", callback);
-  return () => {
-    themeListeners.delete(callback);
-    window.removeEventListener("storage", callback);
-  };
-}
-
-function getThemeSnapshot(): "light" | "dark" {
+function readStoredTheme(): ThemeMode | null {
   try {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY) as "light" | "dark" | null;
-    if (saved === "light" || saved === "dark") return saved;
-    if (window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
   } catch {
-    // Ignore
+    return null;
   }
-  return "light";
 }
 
-function getServerThemeSnapshot(): "light" | "dark" {
+function getSystemTheme(): ThemeMode {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+function getThemeSnapshot(): ThemeMode {
+  const storedTheme = readStoredTheme();
+  if (storedTheme) return storedTheme;
+
+  const documentTheme = document.documentElement.getAttribute("data-theme");
+  if (documentTheme === "light" || documentTheme === "dark") return documentTheme;
+
+  return getSystemTheme();
+}
+
+function getServerThemeSnapshot(): ThemeMode {
   return "light";
 }
 
@@ -67,106 +59,98 @@ function notifyThemeListeners() {
   themeListeners.forEach((listener) => listener());
 }
 
-export const PAINT_BLOB_PATH_COUNT = 3;
+function subscribeTheme(callback: () => void) {
+  themeListeners.add(callback);
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== THEME_STORAGE_KEY && event.key !== null) return;
+
+    const nextTheme = readStoredTheme() ?? getSystemTheme();
+    document.documentElement.setAttribute("data-theme", nextTheme);
+    callback();
+  };
+
+  const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
+  const handleSystemThemeChange = (event: MediaQueryListEvent) => {
+    if (readStoredTheme()) return;
+
+    document.documentElement.setAttribute(
+      "data-theme",
+      event.matches ? "dark" : "light",
+    );
+    callback();
+  };
+
+  window.addEventListener("storage", handleStorage);
+  systemTheme.addEventListener("change", handleSystemThemeChange);
+
+  return () => {
+    themeListeners.delete(callback);
+    window.removeEventListener("storage", handleStorage);
+    systemTheme.removeEventListener("change", handleSystemThemeChange);
+  };
+}
+
+function applyTheme(theme: ThemeMode) {
+  document.documentElement.setAttribute("data-theme", theme);
+
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    // Keep the in-memory theme working even when storage is unavailable.
+  }
+
+  notifyThemeListeners();
+}
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const theme = useSyncExternalStore(subscribeTheme, getThemeSnapshot, getServerThemeSnapshot);
+  const theme = useSyncExternalStore(
+    subscribeTheme,
+    getThemeSnapshot,
+    getServerThemeSnapshot,
+  );
   const [paintTarget, setPaintTarget] = useState<PaintTarget | null>(null);
-  const paintTimers = useRef<number[]>([]);
+  const [paintId, setPaintId] = useState(0);
 
   useEffect(() => {
-    return () => {
-      paintTimers.current.forEach((timer) => window.clearTimeout(timer));
-    };
-  }, []);
+    if (!paintTarget) return;
 
-  const applyTheme = (nextTheme: "light" | "dark") => {
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
-      document.documentElement.setAttribute("data-theme", nextTheme);
-      notifyThemeListeners();
-    } catch {
-      // Ignore
-    }
-  };
+    const timeout = window.setTimeout(
+      () => setPaintTarget(null),
+      PAINT_ANIMATION_DURATION_MS,
+    );
 
-  const changeTheme = (nextTheme: "light" | "dark") => {
-    if (nextTheme === theme || paintTarget !== null) return;
+    return () => window.clearTimeout(timeout);
+  }, [paintTarget]);
 
-    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
-    if (reduceMotion) {
-      applyTheme(nextTheme);
+  const changeTheme = useCallback((nextTheme: ThemeMode) => {
+    if (nextTheme === getThemeSnapshot()) return;
+
+    // Update the document and saved preference before starting the decoration.
+    // The animation never gates or delays the actual theme change.
+    applyTheme(nextTheme);
+
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (prefersReducedMotion) {
+      setPaintTarget(null);
       return;
     }
 
-    // 24 grid positions shuffled for uniform screen coverage with natural jitter
-    const cells = Array.from({ length: 24 }, (_, index) => ({
-      column: index % 6,
-      row: Math.floor(index / 6),
-    }));
+    setPaintId((currentId) => currentId + 1);
+    setPaintTarget(createPaintTarget(nextTheme));
+  }, []);
 
-    for (let i = cells.length - 1; i > 0; i -= 1) {
-      const swap = Math.floor(Math.random() * (i + 1));
-      [cells[i], cells[swap]] = [cells[swap], cells[i]];
-    }
-
-    const positions = cells.map(({ column, row }) => ({
-      x: Math.round((column + 0.5 + (Math.random() - 0.5) * 0.92) * (100 / 6) * 10) / 10,
-      y: Math.round((row + 0.5 + (Math.random() - 0.5) * 0.92) * 25 * 10) / 10,
-    }));
-
-    // 8 edge splashes to guarantee full peripheral coverage
-    for (let i = 0; i < 8; i += 1) {
-      positions.push({
-        x: -12 + Math.random() * 124,
-        y: -14 + Math.random() * 128,
-      });
-    }
-
-    const splashes: PaintSplash[] = positions.map(({ x, y }) => ({
-      x,
-      y,
-      size: Math.round(6 + Math.random() * 15),
-      grow: Number((2.2 + Math.random() * 4.8).toFixed(2)),
-      turn: Math.round(Math.random() * 360),
-      delay: Math.round(Math.random() * 700),
-      duration: Math.round(1200 + Math.random() * 550),
-      variant: Math.floor(Math.random() * PAINT_BLOB_PATH_COUNT),
-    }));
-
-    const sheet: PaintSheet = {
-      x: Math.round(-8 + Math.random() * 116),
-      y: Math.round(-8 + Math.random() * 116),
-      size: Math.round(56 + Math.random() * 14),
-      grow: Number((5 + Math.random() * 1.1).toFixed(2)),
-      turn: Math.round(Math.random() * 360),
-      delay: Math.round(80 + Math.random() * 300),
-      variant: Math.floor(Math.random() * PAINT_BLOB_PATH_COUNT),
-    };
-
-    setPaintTarget({ theme: nextTheme, splashes, sheet });
-
-    // Switch DOM theme at 2300ms when paint completely covers the viewport
-    const switchTimer = window.setTimeout(() => applyTheme(nextTheme), 2300);
-    // Finish animation and clear paint layers at 2980ms
-    const finishTimer = window.setTimeout(() => setPaintTarget(null), 2980);
-    paintTimers.current = [switchTimer, finishTimer];
-  };
-
-  return (
-    <ThemeContext.Provider
-      value={{
-        theme,
-        paintTarget,
-        isPainting: paintTarget !== null,
-        changeTheme,
-      }}
-    >
-      {children}
-    </ThemeContext.Provider>
+  const value = useMemo(
+    () => ({ theme, paintTarget, paintId, changeTheme }),
+    [theme, paintTarget, paintId, changeTheme],
   );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

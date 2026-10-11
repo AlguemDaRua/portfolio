@@ -1,16 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Azam Usman — Desenvolvedor de Software",
@@ -38,33 +27,44 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt" suppressHydrationWarning className="scroll-smooth">
+    <html
+      lang="pt"
+      data-theme="light"
+      suppressHydrationWarning
+      className="scroll-smooth"
+    >
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
+                var root = document.documentElement;
+                var savedTheme = null;
+                var savedLocale = null;
+
                 try {
-                  var saved = localStorage.getItem('azam-portfolio-theme');
-                  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  if (saved === 'dark' || (!saved && prefersDark)) {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                  } else {
-                    document.documentElement.setAttribute('data-theme', 'light');
-                  }
-                  var lang = localStorage.getItem('azam-portfolio-locale');
-                  if (lang) {
-                    document.documentElement.setAttribute('lang', lang);
-                  }
-                } catch(e) {}
+                  savedTheme = localStorage.getItem('azam-portfolio-theme');
+                } catch {}
+                try {
+                  savedLocale = localStorage.getItem('azam-portfolio-locale');
+                } catch {}
+
+                var validTheme = savedTheme === 'light' || savedTheme === 'dark';
+                var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                root.setAttribute(
+                  'data-theme',
+                  validTheme ? savedTheme : (prefersDark ? 'dark' : 'light')
+                );
+
+                if (savedLocale === 'pt' || savedLocale === 'en') {
+                  root.setAttribute('lang', savedLocale);
+                }
               })();
             `,
           }}
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen font-sans antialiased`}
-      >
+      <body className="min-h-screen font-sans antialiased">
         {children}
       </body>
     </html>

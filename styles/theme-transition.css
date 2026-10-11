@@ -1,0 +1,98 @@
+/*
+ * The theme itself changes immediately. This low-opacity accent paint is a
+ * purely decorative layer, kept behind the portfolio content so it can never
+ * obscure text, controls, or keyboard focus.
+ */
+.theme-paint {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  animation: paint-release 170ms ease-out 1010ms both;
+}
+
+.paint-sheet,
+.paint-splash {
+  position: absolute;
+  display: block;
+  overflow: visible;
+  color: var(--accent);
+  fill: currentColor;
+  fill-opacity: 0.14;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.paint-sheet {
+  z-index: 0;
+  transform: translate(-50%, -50%) scale(0.01) rotate(var(--paint-turn));
+  transform-origin: center;
+  animation: paint-sheet-spread var(--sheet-duration, 980ms)
+    cubic-bezier(0.18, 0.7, 0.18, 1) var(--sheet-delay, 0ms) both;
+}
+
+.paint-splash {
+  z-index: 1;
+  transform: translate(-50%, -150%) scale(0.025, 0.1)
+    rotate(var(--paint-turn));
+  transform-origin: center;
+  opacity: 0;
+  animation: paint-splatter var(--paint-duration, 620ms)
+    cubic-bezier(0.16, 0.7, 0.22, 1) var(--paint-delay, 0ms) both;
+}
+
+@keyframes paint-sheet-spread {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.01) rotate(var(--paint-turn));
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.08) rotate(var(--paint-turn));
+  }
+  40% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.92) rotate(var(--paint-turn));
+  }
+  72% {
+    transform: translate(-50%, -50%) scale(3.2) rotate(var(--paint-turn));
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(var(--sheet-grow, 5.8))
+      rotate(var(--paint-turn));
+  }
+}
+
+@keyframes paint-splatter {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -150%) scale(0.025, 0.1)
+      rotate(var(--paint-turn));
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, -44%) scale(0.08, 0.38)
+      rotate(var(--paint-turn));
+  }
+  27% {
+    transform: translate(-50%, -50%) scale(1.12, 0.8)
+      rotate(var(--paint-turn));
+  }
+  42% {
+    transform: translate(-50%, -50%) scale(0.9, 1.12)
+      rotate(var(--paint-turn));
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(var(--paint-grow))
+      rotate(var(--paint-turn));
+  }
+}
+
+@keyframes paint-release {
+  to {
+    opacity: 0;
+  }
+}

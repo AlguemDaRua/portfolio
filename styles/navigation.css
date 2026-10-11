@@ -1,0 +1,229 @@
+/* Side Rail Navigation */
+.side-rail {
+  width: 162px;
+  position: fixed;
+  left: 18px;
+  top: 50%;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px;
+  transform: translateY(-50%);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background-color: var(--paper);
+  box-shadow: 0 9px 28px var(--shadow);
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+@media (max-height: 540px) {
+  .side-rail {
+    top: 12px;
+    transform: none;
+  }
+}
+
+.rail-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rail-monogram {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--control);
+  color: var(--strong);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.1em;
+}
+
+.rail-monogram span {
+  color: var(--accent);
+}
+
+.rail-name {
+  color: var(--body-text);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.rail-progress {
+  width: 100%;
+  height: 1px;
+  position: relative;
+  margin: 12px 0 8px;
+  background: var(--line);
+}
+
+.rail-progress span {
+  height: 100%;
+  display: block;
+  background: var(--accent);
+  transition: width 0.15s linear;
+}
+
+.rail-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rail-nav a {
+  min-height: 34px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--body-muted);
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.rail-nav a::before {
+  content: "";
+  width: 2px;
+  height: 0;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  background: var(--accent);
+  transition: height 0.18s ease, top 0.18s ease;
+}
+
+.rail-nav a:hover,
+.rail-nav a.active {
+  color: var(--ink);
+  background: var(--active-bg);
+}
+
+.rail-nav a:hover::before,
+.rail-nav a.active::before {
+  top: 20%;
+  height: 60%;
+}
+
+.rail-number {
+  width: 18px;
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.03em;
+}
+
+.rail-nav a.active .rail-number {
+  color: var(--accent);
+}
+
+.rail-label {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.rail-bottom {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.theme-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--soft);
+}
+
+.theme-switch button {
+  min-width: 0;
+  height: 27px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--subtle);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.theme-switch button.active {
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.theme-switch svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+
+.rail-bottom-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.language-switch {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--meta);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.language-switch button {
+  padding: 3px 0;
+  border: 0;
+  color: var(--subtle);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  transition: color 0.18s ease;
+}
+
+.language-switch button.active {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.rail-location {
+  color: var(--subtle);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.05em;
+}
+
+.menu-toggle {
+  display: none;
+}
+
+.site-main {
+  position: relative;
+  z-index: 2;
+  margin-left: 196px;
+}
