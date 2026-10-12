@@ -1,6 +1,16 @@
 export type ThemeMode = "light" | "dark";
+export type ThemeDropKind = "sheet" | "splash";
+
+export interface PaintSpeck {
+  x: number;
+  y: number;
+  radiusX: number;
+  radiusY: number;
+  rotation: number;
+}
 
 export interface ThemeDrop {
+  kind: ThemeDropKind;
   centerX: number;
   centerY: number;
   maxRadius: number;
@@ -8,6 +18,11 @@ export interface ThemeDrop {
   delay: number;
   duration: number;
   shape: number;
+  rotation: number;
+  stretchX: number;
+  stretchY: number;
+  specks: PaintSpeck[];
+  sheetPath: string | null;
 }
 
 export interface ThemeTransition {
@@ -15,10 +30,11 @@ export interface ThemeTransition {
   drops: ThemeDrop[];
 }
 
-export const THEME_DROP_COLUMNS = 4;
-export const THEME_DROP_ROWS = 3;
-export const THEME_DROP_COUNT = THEME_DROP_COLUMNS * THEME_DROP_ROWS;
-export const THEME_TRANSITION_DURATION_MS = 3_000;
+export const THEME_DROP_COLUMNS = 6;
+export const THEME_DROP_ROWS = 4;
+export const THEME_SPLASH_COUNT = THEME_DROP_COLUMNS * THEME_DROP_ROWS + 8;
+export const THEME_DROP_COUNT = THEME_SPLASH_COUNT + 1;
+export const THEME_TRANSITION_DURATION_MS = 3_200;
 
 const PAINT_BLOB_PATHS = [
   "M151 17 C173 21 182 44 205 43 C232 40 246 57 252 79 C278 77 288 98 280 120 C302 143 287 168 270 181 C279 205 259 222 236 219 C227 245 206 257 186 244 C166 272 142 276 126 253 C102 267 80 252 80 230 C54 236 39 215 49 193 C24 180 17 155 39 139 C20 115 35 92 60 86 C57 61 81 44 105 54 C119 30 135 12 151 17 Z",
@@ -38,19 +54,6 @@ const PAINT_SPLATTER_DETAILS = [
   "<circle cx='178' cy='279' r='6' />",
 ] as const;
 
-const PAINT_DROP_MASKS = PAINT_BLOB_PATHS.map((blobPath) => {
-  const svg = [
-    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'>",
-    "<g fill='white'>",
-    `<path d='${blobPath}' />`,
-    ...PAINT_SPLATTER_DETAILS,
-    "</g>",
-    "</svg>",
-  ].join("");
-
-  return `url(\"data:image/svg+xml,${encodeURIComponent(svg)}\")`;
-});
-
 function between(random: () => number, min: number, max: number): number {
   return min + random() * (max - min);
 }
@@ -64,6 +67,85 @@ function shuffle<T>(items: T[], random: () => number): T[] {
   return items;
 }
 
+function createSpecks(random: () => number): PaintSpeck[] {
+  const count = Math.floor(between(random, 7, 15));
+
+  return Array.from({ length: count }, () => {
+    const angle = between(random, 0, Math.PI * 2);
+    const distance = between(random, 112, 182);
+
+    return {
+      x: Math.round((150 + Math.cos(angle) * distance) * 10) / 10,
+      y: Math.round((150 + Math.sin(angle) * distance) * 10) / 10,
+      radiusX: Math.round(between(random, 3, 17) * 10) / 10,
+      radiusY: Math.round(between(random, 2, 9) * 10) / 10,
+      rotation: Math.round((angle * 180) / Math.PI + between(random, -40, 40)),
+    };
+  });
+}
+
+function createSheetPath(random: () => number): string {
+  const pointCount = 24;
+  const phase = between(random, 0, Math.PI * 2);
+  const points = Array.from({ length: pointCount }, (_, index) => {
+    const angle = phase + (index / pointCount) * Math.PI * 2;
+    const radius = between(random, 180, 215);
+
+    return {
+      x: Math.round((150 + Math.cos(angle) * radius) * 10) / 10,
+      y: Math.round((150 + Math.sin(angle) * radius) * 10) / 10,
+    };
+  });
+  const midpoint = (left: (typeof points)[number], right: (typeof points)[number]) => ({
+    x: Math.round(((left.x + right.x) / 2) * 10) / 10,
+    y: Math.round(((left.y + right.y) / 2) * 10) / 10,
+  });
+  const start = midpoint(points[pointCount - 1], points[0]);
+  const path = [`M${start.x} ${start.y}`];
+
+  for (let index = 0; index < pointCount; index += 1) {
+    const point = points[index];
+    const nextPoint = points[(index + 1) % pointCount];
+    const end = midpoint(point, nextPoint);
+    path.push(`Q${point.x} ${point.y} ${end.x} ${end.y}`);
+  }
+
+  path.push("Z");
+  return path.join(" ");
+}
+
+function createDrop(
+  kind: ThemeDropKind,
+  centerX: number,
+  centerY: number,
+  maxRadius: number,
+  delay: number,
+  duration: number,
+  random: () => number,
+): ThemeDrop {
+  return {
+    kind,
+    centerX: Math.round(centerX * 10) / 10,
+    centerY: Math.round(centerY * 10) / 10,
+    maxRadius: Math.ceil(maxRadius),
+    impactRadius: Math.max(
+      4,
+      Math.round(
+        maxRadius *
+          between(random, kind === "sheet" ? 0.01 : 0.045, kind === "sheet" ? 0.028 : 0.1),
+      ),
+    ),
+    delay: Math.round(delay),
+    duration: Math.round(duration),
+    shape: Math.floor(random() * PAINT_BLOB_PATHS.length),
+    rotation: Math.round(between(random, 0, 360)),
+    stretchX: Math.round(between(random, 0.78, 1) * 100) / 100,
+    stretchY: Math.round(between(random, 0.72, 1) * 100) / 100,
+    specks: createSpecks(random),
+    sheetPath: kind === "sheet" ? createSheetPath(random) : null,
+  };
+}
+
 export function createThemeTransition(
   theme: ThemeMode,
   viewportWidth: number,
@@ -75,42 +157,85 @@ export function createThemeTransition(
   const cellWidth = width / THEME_DROP_COLUMNS;
   const cellHeight = height / THEME_DROP_ROWS;
   const cells = shuffle(
-    Array.from({ length: THEME_DROP_COUNT }, (_, index) => ({
+    Array.from({ length: THEME_DROP_COLUMNS * THEME_DROP_ROWS }, (_, index) => ({
       column: index % THEME_DROP_COLUMNS,
       row: Math.floor(index / THEME_DROP_COLUMNS),
     })),
     random,
   );
 
-  const drops = cells.map(({ column, row }, index) => {
-    const cellLeft = column * cellWidth;
-    const cellTop = row * cellHeight;
-    const centerX = cellLeft + cellWidth * between(random, 0.36, 0.64);
-    const centerY = cellTop + cellHeight * between(random, 0.36, 0.64);
-    const farthestHorizontalEdge = Math.max(
-      centerX - cellLeft,
-      cellLeft + cellWidth - centerX,
-    );
-    const farthestVerticalEdge = Math.max(
-      centerY - cellTop,
-      cellTop + cellHeight - centerY,
-    );
-    const maxRadius = Math.ceil(
-      Math.hypot(farthestHorizontalEdge, farthestVerticalEdge) * 1.24,
-    );
+  const splashPositions = cells.map(({ column, row }) => ({
+    x: (column + between(random, 0.06, 0.94)) * cellWidth,
+    y: (row + between(random, 0.06, 0.94)) * cellHeight,
+  }));
 
-    return {
-      centerX: Math.round(centerX * 10) / 10,
-      centerY: Math.round(centerY * 10) / 10,
-      maxRadius,
-      impactRadius: Math.max(5, Math.round(maxRadius * 0.08)),
-      delay: Math.round(index * 42 + between(random, 0, 70)),
-      duration: Math.round(between(random, 2_050, 2_350)),
-      shape: Math.floor(between(random, 0, PAINT_DROP_MASKS.length)),
-    };
+  for (let index = 0; index < 8; index += 1) {
+    splashPositions.push({
+      x: between(random, -0.12 * width, 1.12 * width),
+      y: between(random, -0.14 * height, 1.14 * height),
+    });
+  }
+
+  shuffle(splashPositions, random);
+
+  const splashDiagonal = Math.hypot(cellWidth, cellHeight);
+  const splashes = splashPositions.map(({ x, y }) => {
+    const spread = between(random, 0.2, 0.95);
+
+    return createDrop(
+      "splash",
+      x,
+      y,
+      splashDiagonal * spread,
+      between(random, 0, 850),
+      between(random, 1_250, 2_200),
+      random,
+    );
   });
 
-  return { theme, drops };
+  const sheetCenterX = between(random, -0.08 * width, 1.08 * width);
+  const sheetCenterY = between(random, -0.08 * height, 1.08 * height);
+  const farthestViewportCorner = Math.max(
+    Math.hypot(sheetCenterX, sheetCenterY),
+    Math.hypot(width - sheetCenterX, sheetCenterY),
+    Math.hypot(sheetCenterX, height - sheetCenterY),
+    Math.hypot(width - sheetCenterX, height - sheetCenterY),
+  );
+  const sheet = createDrop(
+    "sheet",
+    sheetCenterX,
+    sheetCenterY,
+    farthestViewportCorner * 2.2,
+    between(random, 80, 360),
+    between(random, 2_000, 2_550),
+    random,
+  );
+
+  return { theme, drops: [sheet, ...splashes] };
+}
+
+function createPaintMask(drop: ThemeDrop): string {
+  const transform = [
+    "translate(150 150)",
+    `rotate(${drop.rotation})`,
+    `scale(${drop.stretchX} ${drop.stretchY})`,
+    "translate(-150 -150)",
+  ].join(" ");
+  const randomSpecks = drop.specks.map(
+    (speck) =>
+      `<ellipse cx='${speck.x}' cy='${speck.y}' rx='${speck.radiusX}' ry='${speck.radiusY}' transform='rotate(${speck.rotation} ${speck.x} ${speck.y})' />`,
+  );
+  const svg = [
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='-80 -80 460 460'>",
+    `<g fill='white' transform='${transform}'>`,
+    `<path d='${drop.sheetPath ?? PAINT_BLOB_PATHS[drop.shape]}' />`,
+    ...PAINT_SPLATTER_DETAILS,
+    ...randomSpecks,
+    "</g>",
+    "</svg>",
+  ].join("");
+
+  return `url(\"data:image/svg+xml,${encodeURIComponent(svg)}\")`;
 }
 
 export function applyThemeDropVariables(
@@ -124,10 +249,7 @@ export function applyThemeDropVariables(
     root.style.setProperty(`--theme-drop-impact-radius-${index}`, `${drop.impactRadius}px`);
     root.style.setProperty(`--theme-drop-delay-${index}`, `${drop.delay}ms`);
     root.style.setProperty(`--theme-drop-duration-${index}`, `${drop.duration}ms`);
-    root.style.setProperty(
-      `--theme-drop-mask-${index}`,
-      PAINT_DROP_MASKS[drop.shape] ?? PAINT_DROP_MASKS[0],
-    );
+    root.style.setProperty(`--theme-drop-mask-${index}`, createPaintMask(drop));
   });
 }
 

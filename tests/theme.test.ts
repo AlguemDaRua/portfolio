@@ -6,7 +6,10 @@ import {
   applyThemeDropVariables,
   clearThemeDropVariables,
   createThemeTransition,
+  THEME_DROP_COLUMNS,
   THEME_DROP_COUNT,
+  THEME_DROP_ROWS,
+  THEME_SPLASH_COUNT,
   THEME_TRANSITION_DURATION_MS,
 } from "../lib/theme-paint";
 
@@ -14,6 +17,14 @@ const rootDir = path.resolve(__dirname, "..");
 
 function readProjectFile(filePath: string): string {
   return fs.readFileSync(path.join(rootDir, filePath), "utf8");
+}
+
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0;
+    return state / 0x1_0000_0000;
+  };
 }
 
 test("Theme tokens are centralized and cover both color schemes", () => {
@@ -70,37 +81,64 @@ test("Theme changes are revealed locally through non-translucent page snapshots"
   assert.match(nextConfig, /turbopack:\s*\{\s*root:\s*projectRoot/);
 });
 
-test("Theme drops cover the viewport with bounded, deterministic timing", () => {
-  const firstTransition = createThemeTransition("dark", 1440, 900, () => 0.5);
-  const secondTransition = createThemeTransition("dark", 1440, 900, () => 0.5);
+test("Paint splashes are varied, scattered, and finish within the transition window", () => {
+  const firstTransition = createThemeTransition("dark", 1440, 900, seededRandom(42));
+  const secondTransition = createThemeTransition("dark", 1440, 900, seededRandom(42));
+  const differentTransition = createThemeTransition("dark", 1440, 900, seededRandom(99));
   const slowestTransition = createThemeTransition("light", 1440, 900, () => 0.999999);
 
   assert.deepEqual(firstTransition, secondTransition);
+  assert.notDeepEqual(firstTransition, differentTransition);
   assert.equal(firstTransition.theme, "dark");
   assert.equal(firstTransition.drops.length, THEME_DROP_COUNT);
-  assert.ok(THEME_TRANSITION_DURATION_MS >= 2_800);
+  assert.equal(firstTransition.drops[0].kind, "sheet");
+  assert.equal(
+    firstTransition.drops.filter((drop) => drop.kind === "splash").length,
+    THEME_SPLASH_COUNT,
+  );
+  assert.ok(THEME_TRANSITION_DURATION_MS >= 3_000);
   assert.ok(THEME_TRANSITION_DURATION_MS <= 3_200);
   assert.ok(
     Math.max(...slowestTransition.drops.map((drop) => drop.delay + drop.duration)) <=
       THEME_TRANSITION_DURATION_MS,
   );
 
-  const coveredCells = new Set<string>();
+  const splashes = firstTransition.drops.filter((drop) => drop.kind === "splash");
+  assert.ok(new Set(splashes.map((drop) => drop.shape)).size > 1);
+  assert.ok(new Set(splashes.map((drop) => drop.rotation)).size > 8);
+  assert.ok(new Set(splashes.map((drop) => drop.maxRadius)).size > 8);
+
+  const coveredGridCells = new Set<string>();
   for (const drop of firstTransition.drops) {
-    assert.ok(drop.centerX >= 0 && drop.centerX <= 1_440);
-    assert.ok(drop.centerY >= 0 && drop.centerY <= 900);
+    assert.ok(drop.centerX >= -0.15 * 1_440 && drop.centerX <= 1.15 * 1_440);
+    assert.ok(drop.centerY >= -0.15 * 900 && drop.centerY <= 1.15 * 900);
     assert.ok(drop.maxRadius > drop.impactRadius);
     assert.ok(drop.impactRadius > 0);
     assert.ok(drop.delay >= 0);
-    assert.ok(drop.duration >= 2_050 && drop.duration <= 2_350);
-    assert.ok(drop.delay + drop.duration <= THEME_TRANSITION_DURATION_MS);
     assert.ok(drop.shape >= 0 && drop.shape < 3);
+    assert.ok(drop.rotation >= 0 && drop.rotation <= 360);
+    assert.ok(drop.specks.length >= 7 && drop.specks.length <= 14);
+    assert.ok(drop.delay + drop.duration <= THEME_TRANSITION_DURATION_MS);
 
-    coveredCells.add(
-      `${Math.floor(drop.centerX / 360)}-${Math.floor(drop.centerY / 300)}`,
-    );
+    if (drop.kind === "sheet") {
+      assert.ok(drop.duration >= 2_000 && drop.duration <= 2_550);
+      assert.match(drop.sheetPath ?? "", /^M[\s\S]+Q[\s\S]+Z$/);
+    } else {
+      assert.equal(drop.sheetPath, null);
+      assert.ok(drop.duration >= 1_250 && drop.duration <= 2_200);
+      if (drop.centerX >= 0 && drop.centerX < 1_440 && drop.centerY >= 0 && drop.centerY < 900) {
+        coveredGridCells.add(
+          `${Math.floor(drop.centerX / (1_440 / THEME_DROP_COLUMNS))}-${Math.floor(drop.centerY / (900 / THEME_DROP_ROWS))}`,
+        );
+      }
+    }
   }
-  assert.equal(coveredCells.size, THEME_DROP_COUNT, "Drops should start in separate page regions");
+
+  assert.equal(
+    coveredGridCells.size,
+    THEME_DROP_COLUMNS * THEME_DROP_ROWS,
+    "Randomized splashes should still cover the viewport grid",
+  );
 });
 
 test("Drop CSS variables are set and cleared without retaining stale transition data", () => {
