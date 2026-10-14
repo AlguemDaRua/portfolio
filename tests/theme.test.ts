@@ -5,7 +5,6 @@ import path from "node:path";
 import {
   createThemePaint,
   drawThemePaintFrame,
-  themeDropRadius,
   createThemeTransition,
   THEME_DROP_COLUMNS,
   THEME_DROP_COUNT,
@@ -92,16 +91,17 @@ test("Paint drops are reproducible, varied, scattered, and arrive throughout the
   assert.equal(first.theme, "dark");
   assert.equal(first.drops.length, THEME_DROP_COUNT);
   assert.ok(THEME_DROP_COUNT >= 48);
-  assert.ok(new Set(first.drops.map((drop) => drop.maxRadius)).size > 32);
-  assert.ok(new Set(first.drops.map((drop) => drop.impactRadius)).size > 32);
+  assert.ok(new Set(first.drops.map((drop) => drop.coreRadius)).size > 32);
+  assert.ok(new Set(first.drops.map((drop) => JSON.stringify(drop.outline))).size > 32);
 
   const cells = new Set<string>();
   for (const drop of first.drops) {
     assert.ok(drop.centerX >= 0 && drop.centerX < first.width);
     assert.ok(drop.centerY >= 0 && drop.centerY < first.height);
-    assert.ok(drop.maxRadius > drop.impactRadius && drop.impactRadius > 0);
-    assert.ok(drop.delay >= 0 && drop.duration > 0);
-    assert.ok(drop.delay + drop.duration <= THEME_TRANSITION_DURATION_MS);
+    assert.ok(drop.coreRadius > 0);
+    assert.ok(drop.delay >= 0 && drop.delay < THEME_TRANSITION_DURATION_MS);
+    assert.equal(drop.outline.length, 28);
+    assert.ok(drop.specks.length >= 5 && drop.specks.length <= 9);
     cells.add(`${Math.floor(drop.centerX / (1440 / THEME_DROP_COLUMNS))}-${Math.floor(drop.centerY / (900 / THEME_DROP_ROWS))}`);
   }
   assert.equal(cells.size, THEME_DROP_COLUMNS * THEME_DROP_ROWS);
@@ -109,7 +109,7 @@ test("Paint drops are reproducible, varied, scattered, and arrive throughout the
   assert.ok(first.drops.some((drop) => drop.delay > 450));
 });
 
-test("Growing drops guarantee full coverage without a finishing sheet, even at extreme RNG/viewport sizes", () => {
+test("Static splatters guarantee full coverage without growth or a finishing sheet, even at extreme RNG/viewport sizes", () => {
   for (const [width, height] of [[1, 1], [390, 844], [1440, 900], [3840, 2160], [4000, 300], [300, 4000]]) {
     for (const random of [seededRandom(42), seededRandom(99), () => 0, () => 0.999999]) {
       const transition = createThemeTransition("light", width, height, random);
@@ -124,7 +124,7 @@ test("Growing drops guarantee full coverage without a finishing sheet, even at e
           assert.ok(transition.drops.some((drop) =>
             [[left, top], [right, top], [left, bottom], [right, bottom]].every(([x, y]) =>
               Math.hypot(x - drop.centerX, y - drop.centerY) + 1 <
-                themeDropRadius(drop, THEME_TRANSITION_DURATION_MS),
+                drop.coreRadius,
             ),
           ));
         }
@@ -133,37 +133,77 @@ test("Growing drops guarantee full coverage without a finishing sheet, even at e
   }
 });
 
-test("Ink only accumulates: delayed drops appear and every radius grows monotonically", () => {
+test("Rounded irregular contours enclose their guaranteed coverage core", () => {
+  const transition = createThemeTransition("dark", 1440, 900, seededRandom(8));
+  for (const drop of transition.drops) {
+    const points = drop.outline;
+    const distances = points.map((point) => Math.hypot(point.x - drop.centerX, point.y - drop.centerY));
+    assert.ok(Math.max(...distances) / Math.min(...distances) > 1.3, "A splatter is not a circular disk");
+    for (let index = 0; index < points.length; index += 1) {
+      const previous = points[(index + points.length - 1) % points.length];
+      const control = points[index];
+      const next = points[(index + 1) % points.length];
+      for (let t = 0; t <= 1; t += 0.05) {
+        const x = (1 - t) ** 2 * (previous.x + control.x) / 2 +
+          2 * (1 - t) * t * control.x + t ** 2 * (control.x + next.x) / 2;
+        const y = (1 - t) ** 2 * (previous.y + control.y) / 2 +
+          2 * (1 - t) * t * control.y + t ** 2 * (control.y + next.y) / 2;
+        assert.ok(Math.hypot(x - drop.centerX, y - drop.centerY) >= drop.coreRadius);
+      }
+    }
+  }
+});
+
+test("Ink accumulates only through new full-size impacts; landed splatters never grow or redraw", () => {
   const transition = createThemeTransition("dark", 800, 600, seededRandom(7));
-  const previous = transition.drops.map(() => 0);
-  let previousCount = 0;
+  const original = structuredClone(transition);
+  let cursor = 0;
   let fills = 0;
-  let arcs = 0;
   const context = {
     fillStyle: "",
     beginPath() {},
-    arc() { arcs += 1; },
+    moveTo() {},
+    quadraticCurveTo() {},
+    closePath() {},
     fill() { fills += 1; },
+    arc() { assert.fail("No circular drops"); },
+    scale() { assert.fail("No growth or scaling of splatters"); },
     clearRect() { assert.fail("Cumulative ink must never be erased"); },
-    fillRect() { assert.fail("Coverage must come from drops, not an opaque finishing rectangle"); },
+    fillRect() { assert.fail("No opaque finishing rectangle"); },
   } as unknown as CanvasRenderingContext2D;
 
-  for (let elapsed = -1; elapsed <= THEME_TRANSITION_DURATION_MS; elapsed += 16) {
-    const count = transition.drops.filter((drop) => themeDropRadius(drop, elapsed) > 0).length;
-    assert.ok(count >= previousCount);
-    previousCount = count;
-    transition.drops.forEach((drop, index) => {
-      const radius = themeDropRadius(drop, elapsed);
-      assert.ok(radius >= previous[index] && radius <= drop.maxRadius);
-      previous[index] = radius;
-    });
-    const before = arcs;
-    drawThemePaintFrame(context, transition, elapsed);
-    assert.equal(arcs - before, count);
+  for (let elapsed = 0; elapsed <= THEME_TRANSITION_DURATION_MS; elapsed += 16) {
+    const previous = cursor;
+    const before = fills;
+    cursor = drawThemePaintFrame(context, transition, elapsed, cursor);
+    assert.equal(cursor, transition.drops.filter((drop) => drop.delay <= elapsed).length);
+    assert.equal(fills - before, transition.drops.slice(previous, cursor).reduce((sum, drop) => sum + 1 + drop.specks.length, 0));
+    drawThemePaintFrame(context, transition, elapsed, cursor);
+    const after = fills;
+    drawThemePaintFrame(context, transition, elapsed, cursor);
+    assert.equal(fills, after, "A repeated frame must not change existing ink, even its antialiased edges");
   }
-  assert.equal(previousCount, THEME_DROP_COUNT);
-  assert.equal(arcs, fills);
+  assert.equal(cursor, THEME_DROP_COUNT);
+  assert.deepEqual(transition, original, "Geometry never changes with time");
   assert.equal(context.fillStyle, "#ffffff");
+});
+
+test("An individual splatter has the exact same full-size path at impact and later", () => {
+  const transition = createThemeTransition("light", 800, 600, seededRandom(18));
+  const drop = transition.drops[20];
+  transition.drops = [drop];
+  const commands: number[][] = [];
+  const context = {
+    beginPath() {}, closePath() {}, fill() {},
+    moveTo(...args: number[]) { commands.push(args); },
+    quadraticCurveTo(...args: number[]) { commands.push(args); },
+  } as unknown as CanvasRenderingContext2D;
+  assert.equal(drawThemePaintFrame(context, transition, drop.delay - 1), 0);
+  assert.equal(commands.length, 0);
+  assert.equal(drawThemePaintFrame(context, transition, drop.delay), 1);
+  const impact = commands.splice(0);
+  drawThemePaintFrame(context, transition, THEME_TRANSITION_DURATION_MS);
+  assert.deepEqual(commands, impact);
 });
 
 test("Canvas masks advance via rAF, remain detached, and release frames/styles on completion or interruption", () => {
@@ -175,7 +215,7 @@ test("Canvas masks advance via rAF, remain detached, and release frames/styles o
   let styles = 0;
   let encodeFails = false;
   let contextAvailable = true;
-  const context = { scale() {}, beginPath() {}, arc() {}, fill() {} };
+  const context = { scale() {}, beginPath() {}, moveTo() {}, quadraticCurveTo() {}, closePath() {}, fill() {} };
   const canvas = {
     width: 0, height: 0,
     getContext: () => contextAvailable ? context : null,
