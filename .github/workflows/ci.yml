@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -17,19 +20,25 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7.1.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
+
+      - name: Set up npm
+        run: npm install --global npm@12.2.0
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit all dependencies
+        run: npm run audit
+
       - name: Cache Next.js build
-        uses: actions/cache@v4
+        uses: actions/cache@v6.1.0
         with:
           path: ${{ github.workspace }}/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
@@ -56,18 +65,20 @@ jobs:
       matrix:
         browser: [chromium, firefox, webkit]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
+      - name: Set up npm
+        run: npm install --global npm@12.2.0
       - run: npm ci
       - name: Install browser engine and system dependencies
         run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: npm run build
       - name: Exercise ink, fallbacks and core controls
         run: npm run test:browser -- --project=${{ matrix.browser }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         if: failure()
         with:
           name: browser-failure-${{ matrix.browser }}

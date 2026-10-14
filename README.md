@@ -4,7 +4,17 @@ Portfólio pessoal construído com Next.js 16, React e TypeScript. O conteúdo e
 
 ## Desenvolvimento
 
-Requer Node.js 20.9 ou superior.
+Requer **Node.js 26** e **npm 12.2+ (major 12)**. A versão testada de Node está em `.nvmrc` (26.11.1); `packageManager` fixa npm 12.2.0. Os tipos de Node acompanham o runtime 26. São versões estáveis atuais, não versões beta/canary.
+
+Se usas nvm, prepara o ambiente antes de instalar as dependências:
+
+```bash
+nvm install
+nvm use
+npm install --global npm@12.2.0
+```
+
+Sem nvm, instala as mesmas versões através do teu gestor de Node preferido. Depois:
 
 ```bash
 npm ci
@@ -16,13 +26,32 @@ Abre [http://localhost:3000](http://localhost:3000).
 ## Verificações
 
 ```bash
+npm run audit
+npm outdated
 npm run type-check
 npm run lint
 npm run test
 npm run build
-# Executa todas as verificações acima
+# Executa type-check, lint, testes e build
 npm run test:all
 ```
+
+## Dependências e segurança
+
+- **Âmbito das versões:** as dependências diretas estão nas versões estáveis mais recentes verificadas. As transitivas são atualizadas dentro dos intervalos suportados; versões fixadas internamente por Next.js/Tailwind (por exemplo, PostCSS/Lightning CSS) não são forçadas com overrides só para alterar um número. `npm outdated` verifica as diretas; `npm outdated --all` também pode listar esses pins e binários opcionais de outras plataformas.
+- **Instalação reproduzível:** usa `npm ci` e mantém `package-lock.json` versionado. `.npmrc` rejeita runtimes incompatíveis e scripts de instalação sem uma decisão explícita.
+- **Scripts aprovados:** apenas `esbuild@0.28.2`, necessário ao `tsx`, tem o `postinstall` autorizado. O script prepara/verifica o binário da plataforma; a autorização é limitada à versão revista. `unrs-resolver` deixou de fazer parte da árvore.
+- **Ao atualizar um pacote com scripts:** revê o código de instalação da nova versão antes de aprovar. `npm install-scripts ls` mostra as decisões pendentes. Para obter uma atualização para revisão, usa `npm install --ignore-scripts`; depois de rever, `npm install-scripts approve <pacote>` regista a versão aprovada e `npm ci` valida a instalação normal. Não uses aprovações globais, `--legacy-peer-deps` ou `npm audit fix --force` para esconder incompatibilidades.
+- **Auditoria:** `npm run audit` inclui dependências de desenvolvimento e falha perante vulnerabilidades conhecidas de qualquer severidade. Também é obrigatório na CI. Um resultado limpo é uma verificação pontual, não uma garantia permanente de segurança.
+- **Atualizações futuras:** Dependabot está configurado para propor atualizações semanais de npm e GitHub Actions, em grupos para manter pacotes relacionados juntos. Só fica ativo quando esta configuração chegar à branch principal. PRs continuam sujeitos a revisão, scripts aprovados e testes; não há merge automático. Node/npm também devem ser revistos periodicamente.
+
+### Lint com TypeScript 7
+
+O lint usa **Oxlint**, com regras de Next.js, React/hooks, TypeScript, imports e acessibilidade; avisos também fazem falhar `npm run lint`. O type-check continua separado, com `tsc --noEmit` e modo estrito, e o build Next.js também verifica os tipos.
+
+Esta migração remove a cadeia antiga `eslint-config-next → fast-glob → micromatch → braces`, que mantinha uma vulnerabilidade sem versão corrigida, e evita forçar ESLint 10/TypeScript 7 em plugins que ainda não declaram compatibilidade. Não é uma promessa de equivalência regra a regra com os presets antigos: `.oxlintrc.json` passa a ser a configuração explícita. `tests/tooling.test.ts` confirma que hooks condicionais, dependências de efeitos em falta, listas sem keys, imagens Next incorretas, falhas de acessibilidade e `any` explícito são detetados.
+
+As exceções são intencionais: o JSX automático não exige `React` no scope; CSS pode ser importado pelos seus efeitos; grupos de botões podem usar ARIA sem virar formulários. Apenas `SideRail.tsx` permite `onBlur` no `aside`, para fechar o menu quando o foco sai — não para tornar o contentor clicável. As restantes regras de interação/acessibilidade mantêm-se ativas.
 
 ## Estrutura
 
