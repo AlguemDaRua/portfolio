@@ -37,6 +37,19 @@ npm run test:all
 - `tests/` — testes de conteúdo, navegação e comportamento/estrutura do tema.
 - `espreitar/` — exemplos de referência; não fazem parte da aplicação principal.
 
+## Interface e manutenção
+
+O visual é editorial e minimalista: títulos com hierarquia clara, uma escala de espaçamento partilhada, texto legível e azul reservado aos detalhes. Não são usados screenshots fictícios, percentagens de competências ou links de projetos sem destino real.
+
+- **Conteúdo:** textos e mensagens de interface em `data/content.ts`, com tipos e paridade PT/EN. As informações dos projetos e os PDFs existentes foram preservados.
+- **Componentes:** `SectionHeading` uniformiza cabeçalhos; as secções mantêm a composição em `PortfolioShell`. Projetos e competências usam listas semânticas.
+- **Estilos:** cores, largura máxima, raios e ritmo vertical em `styles/tokens.css`. Responsividade, acessibilidade e impressão têm responsabilidades separadas; o cabeçalho mobile entra aos 900px.
+- **Acessibilidade:** ligação para saltar para o conteúdo, IDs únicos, títulos associados às secções, foco visível e menu mobile com Escape, foco inicial e fecho ao sair. O scramble fica limitado a rótulos curtos, não é anunciado aos leitores de ecrã e respeita movimento reduzido.
+- **Contacto:** a cópia só anuncia sucesso depois de a API Clipboard confirmar; falhas apresentam uma alternativa e o `mailto:` continua disponível.
+- **Testes:** `tests/ui.test.ts` verifica o HTML renderizado no servidor, navegação, traduções de controlos, destinos reais e contraste dos tokens de texto. Os testes da máscara de tinta continuam independentes.
+
+Antes de publicar, testar PT/EN e claro/escuro entre 320px e desktop, navegação apenas com teclado, menu mobile, cópia de e-mail permitida/negada, PDFs e persistência após recarregar. Uma auditoria automática de acessibilidade não substitui a verificação com leitores de ecrã e dispositivos reais.
+
 ## Tema claro/escuro
 
 A preferência inicial respeita o tema do sistema e é carregada antes da primeira pintura da página. Em navegadores compatíveis, **384 salpicos cumulativos** com posições, contornos e tempos de chegada aleatórios revelam o novo tema em cerca de **1,6 segundos**. Cada salpico aparece imediatamente no tamanho final e fica imóvel: não há círculos a crescer. Uma mancha por célula de uma grelha de cobertura (com centros e ordem aleatórios), mais 192 salpicos livres, garante a cobertura de todo o viewport sem uma mancha gigante nem um preenchimento abrupto no fim.

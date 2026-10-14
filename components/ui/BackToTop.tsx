@@ -12,6 +12,7 @@ export function BackToTop() {
     const handleScroll = () => {
       setVisible(window.scrollY > 320);
     };
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);

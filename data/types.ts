@@ -36,6 +36,10 @@ export interface ResumeCard {
 export interface TranslationContent {
   nav: {
     home: string;
+    label: string;
+    open: string;
+    close: string;
+    skip: string;
     about: string;
     work: string;
     skills: string;
@@ -51,6 +55,8 @@ export interface TranslationContent {
   };
   hero: {
     eyebrow: string;
+    edition: string;
+    titleAccent: string;
     title: string;
     text: string;
     work: string;
@@ -93,6 +99,7 @@ export interface TranslationContent {
     email: string;
     copyEmail: string;
     copied: string;
+    copyError: string;
     footer: string;
     backTop: string;
   };

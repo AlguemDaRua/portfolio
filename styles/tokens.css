@@ -2,17 +2,17 @@
   color-scheme: light;
   --paper: #fcfcfa;
   --ink: #202124;
-  --muted: #72757b;
+  --muted: #646a73;
   --line: #e7e8e5;
-  --accent: #5267d8;
+  --accent: #4c60cb;
   --accent-hover: #4153b8;
   --soft: #f3f4f2;
   --strong: #24262a;
   --body-text: #55595f;
-  --body-muted: #71757b;
-  --meta: #8b8e92;
-  --subtle: #92959a;
-  --faint: #a0a3a8;
+  --body-muted: #646a73;
+  --meta: #666c75;
+  --subtle: #6b7079;
+  --faint: #6b7079;
   --control: #d9dbe0;
   --active-bg: #f2f3fa;
   --soft-edge: #eaebe8;
@@ -22,7 +22,10 @@
   --back-shadow: rgba(20, 22, 26, 0.08);
   --font-geist-sans: "Geist Variable";
   --font-geist-mono: "Geist Mono Variable";
-  --max: 940px;
+  --max: 1040px;
+  --section-space: clamp(64px, 7vw, 104px);
+  --radius: 12px;
+  --radius-small: 6px;
 }
 
 :root[data-theme="dark"] {
@@ -67,5 +70,6 @@
   --color-border-mid: var(--border-mid);
   --color-inverse-text: var(--inverse-text);
   --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono:
+    var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }

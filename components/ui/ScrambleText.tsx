@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState, ElementType } from "react";
+import { useEffect, useRef, useState, type ElementType } from "react";
 
-const MATRIX_GLYPHS = "0101アイウエオカキクケコサシスセソ$#@%&*+-/<>_XYZ987654321";
+const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 interface ScrambleTextProps {
   text: string;
@@ -17,57 +17,54 @@ export function ScrambleText({
   className = "",
   as: Component = "span",
   speed = 28,
-  duration = 400,
+  duration = 280,
 }: ScrambleTextProps) {
-  const [displayText, setDisplayText] = useState(text);
-  const prevTextRef = useRef(text);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [display, setDisplay] = useState({ source: text, value: text });
+  const previousText = useRef(text);
 
   useEffect(() => {
-    if (prevTextRef.current === text) return;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let frame: number | null = null;
+    const changed = previousText.current !== text;
+    previousText.current = text;
+    const start = performance.now();
+    let lastUpdate = -Infinity;
 
-    prevTextRef.current = text;
-
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    const totalSteps = Math.max(10, Math.floor(duration / speed));
-    let currentStep = 0;
-
-    intervalRef.current = setInterval(() => {
-      currentStep++;
-      const progress = currentStep / totalSteps;
-      const targetLength = text.length;
-      const revealedCount = Math.floor(progress * targetLength);
-
-      let result = "";
-      for (let i = 0; i < targetLength; i++) {
-        const targetChar = text[i];
-        if (i < revealedCount) {
-          result += targetChar;
-        } else if (targetChar === " " || targetChar === "\n" || targetChar === "\t") {
-          result += targetChar;
-        } else {
-          const randomIndex = Math.floor(Math.random() * MATRIX_GLYPHS.length);
-          result += MATRIX_GLYPHS[randomIndex];
-        }
+    const tick = (now: number) => {
+      const progress =
+        duration <= 0 ? 1 : Math.min(1, (now - start) / duration);
+      if (now - lastUpdate >= speed || progress === 1) {
+        lastUpdate = now;
+        const revealed = Math.floor(progress * text.length);
+        const value = Array.from(text, (letter, index) =>
+          index < revealed || /\s/.test(letter)
+            ? letter
+            : GLYPHS[Math.floor(Math.random() * GLYPHS.length)],
+        ).join("");
+        setDisplay({ source: text, value: progress === 1 ? text : value });
       }
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+    const onMotionChange = () => {
+      if (!motion.matches) return;
+      if (frame !== null) cancelAnimationFrame(frame);
+      setDisplay({ source: text, value: text });
+    };
 
-      setDisplayText(result);
-
-      if (currentStep >= totalSteps) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        setDisplayText(text);
-      }
-    }, speed);
-
+    if (changed && !motion.matches) frame = requestAnimationFrame(tick);
+    motion.addEventListener("change", onMotionChange);
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (frame !== null) cancelAnimationFrame(frame);
+      motion.removeEventListener("change", onMotionChange);
     };
   }, [text, speed, duration]);
 
-  return <Component className={className}>{displayText}</Component>;
+  return (
+    <Component className={className}>
+      <span aria-hidden="true">
+        {display.source === text ? display.value : text}
+      </span>
+      <span className="sr-only">{text}</span>
+    </Component>
+  );
 }

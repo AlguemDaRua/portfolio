@@ -4,36 +4,43 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 76px;
-  background-color: var(--paper);
+  scroll-padding-top: 96px;
+  background: var(--paper);
   color: var(--ink);
-  transition: color 0.18s ease, background-color 0.18s ease;
 }
 
 body {
   margin: 0;
+  background: var(--paper);
   color: var(--ink);
-  background-color: var(--paper);
   font-family: var(--font-sans);
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 16px;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 a {
   color: inherit;
   text-decoration: none;
 }
-
 button {
   font: inherit;
 }
-
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button:disabled {
+  cursor: wait;
+}
+svg {
+  flex-shrink: 0;
+}
 ::selection {
-  color: #fff;
-  background: var(--accent);
+  color: var(--inverse-text);
+  background: var(--ink);
 }
 
 .site-shell {
@@ -41,28 +48,66 @@ button {
   position: relative;
   isolation: isolate;
   color: var(--ink);
-  background-color: var(--paper);
-  transition: color 0.2s ease, background-color 0.2s ease;
+  background: var(--paper);
 }
 
-.site-shell :where(*, *::before, *::after) {
-  transition-property: color, background-color, border-color, box-shadow, fill, stroke;
-  transition-duration: 180ms;
-  transition-timing-function: ease;
+.site-shell :where(a, button, article) {
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .page-wrap {
-  width: min(var(--max), calc(100% - 80px));
+  width: min(var(--max), calc(100% - 112px));
   margin-inline: auto;
 }
-
 .eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: var(--meta);
+  gap: 10px;
+  color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 8px;
-  line-height: 1.45;
+  font-size: 11px;
+  line-height: 1.5;
   letter-spacing: 0.08em;
+}
+
+h1,
+h2,
+h3,
+p {
+  overflow-wrap: break-word;
+}
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
+}
+
+.skip-link {
+  position: fixed;
+  left: 16px;
+  top: 12px;
+  z-index: 100;
+  padding: 12px 20px;
+  border-radius: var(--radius-small);
+  color: var(--inverse-text);
+  background: var(--ink);
+  transform: translateY(-180%);
+}
+.skip-link:focus {
+  transform: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
+}
+#main-content:focus {
+  outline: none;
 }

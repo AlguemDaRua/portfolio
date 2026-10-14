@@ -1,47 +1,39 @@
 "use client";
 
-import React from "react";
 import { useLanguage } from "@/context/LanguageContext";
-import { ScrambleText } from "@/components/ui/ScrambleText";
+import { GraduationCap, MapPin } from "lucide-react";
 
 export function AboutSection() {
   const { t } = useLanguage();
 
   return (
-    <section className="about-section" id="about">
+    <section className="about-section" id="about" aria-labelledby="about-title">
       <div className="page-wrap about-inner">
         <div className="about-copy">
-          <span className="eyebrow">
-            <ScrambleText text={t.about.label} />
-          </span>
-          <h2>
-            <ScrambleText text={t.about.title} duration={450} />
-          </h2>
-          <p>
-            <ScrambleText text={t.about.text} duration={350} />
-          </p>
+          <span className="eyebrow">{t.about.label}</span>
+          <h2 id="about-title">{t.about.title}</h2>
+          <p>{t.about.text}</p>
         </div>
-
-        <div className="about-facts">
+        <dl className="about-facts">
           <div>
-            <span>
-              <ScrambleText text={t.about.educationLabel} />
-            </span>
-            <p>
+            <dt>
+              <GraduationCap aria-hidden="true" />
+              {t.about.educationLabel}
+            </dt>
+            <dd>
               {t.about.education.degree}
-              <small>
-                {t.about.education.institution} · {t.about.education.period}
-              </small>
-            </p>
+              <small>{t.about.education.institution}</small>
+              <span className="fact-period">{t.about.education.period}</span>
+            </dd>
           </div>
-
           <div>
-            <span>
-              <ScrambleText text={t.about.locationLabel} />
-            </span>
-            <p>{t.about.location}</p>
+            <dt>
+              <MapPin aria-hidden="true" />
+              {t.about.locationLabel}
+            </dt>
+            <dd>{t.about.location}</dd>
           </div>
-        </div>
+        </dl>
       </div>
     </section>
   );

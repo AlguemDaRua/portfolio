@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ScrambleText } from "@/components/ui/ScrambleText";
@@ -19,6 +19,41 @@ export function SideRail() {
   const [activeSection, setActiveSection] = useState<string>("");
   const [scrollProgress, setScrollProgress] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const railRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const focusFrame = requestAnimationFrame(() => {
+      railRef.current
+        ?.querySelector<HTMLAnchorElement>(".rail-nav a")
+        ?.focus({ preventScroll: true });
+    });
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      menuButtonRef.current?.focus();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !railRef.current?.contains(event.target)
+      )
+        setMenuOpen(false);
+    };
+    const onResize = () => {
+      if (window.innerWidth > 900) setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     let animationFrame: number | null = null;
@@ -30,15 +65,24 @@ export function SideRail() {
       const scrollHeight = document.documentElement.scrollHeight;
       const innerHeight = window.innerHeight;
       const maxScroll = scrollHeight - innerHeight;
-      const progress = maxScroll > 0 ? Math.round((scrollY / maxScroll) * 100) : 0;
-      setScrollProgress((current) => (current === progress ? current : progress));
+      const progress =
+        maxScroll > 0
+          ? Math.max(0, Math.min(100, Math.round((scrollY / maxScroll) * 100)))
+          : 0;
+      setScrollProgress((current) =>
+        current === progress ? current : progress,
+      );
 
-      const currentSection = SECTIONS.reduce<string>((current, { id }) => {
-        const section = document.getElementById(id);
-        return section && section.getBoundingClientRect().top <= innerHeight * 0.38
-          ? id
-          : current;
-      }, "");
+      const currentSection =
+        maxScroll > 0 && scrollY >= maxScroll - 2
+          ? "contact"
+          : SECTIONS.reduce<string>((current, { id }) => {
+              const section = document.getElementById(id);
+              return section &&
+                section.getBoundingClientRect().top <= innerHeight * 0.38
+                ? id
+                : current;
+            }, "");
 
       setActiveSection((current) =>
         current === currentSection ? current : currentSection,
@@ -66,15 +110,25 @@ export function SideRail() {
   const closeMenu = () => setMenuOpen(false);
 
   return (
-    <aside className="side-rail" aria-label="Navegação lateral">
+    <aside
+      ref={railRef}
+      className="side-rail"
+      aria-label={t.nav.label}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget))
+          setMenuOpen(false);
+      }}
+    >
       <a
         className="rail-brand"
         href="#top"
-        aria-label="Azam Usman — Início"
+        aria-label={`Azam Usman — ${t.nav.home}`}
         onClick={closeMenu}
       >
         <span className="rail-monogram">
-          AU<span>.</span>
+          <span>
+            AU<span className="monogram-dot">.</span>
+          </span>
         </span>
         <span className="rail-name">Azam Usman</span>
       </a>
@@ -84,8 +138,9 @@ export function SideRail() {
       </div>
 
       <nav
+        id="site-navigation"
         className={`rail-nav ${menuOpen ? "rail-nav-open" : ""}`}
-        aria-label="Navegação principal"
+        aria-label={t.nav.label}
       >
         {SECTIONS.map((section) => (
           <a
@@ -113,9 +168,11 @@ export function SideRail() {
         </div>
 
         <button
+          ref={menuButtonRef}
           className={`menu-toggle ${menuOpen ? "open" : ""}`}
           type="button"
-          aria-label={menuOpen ? "Fechar navegação" : "Abrir navegação"}
+          aria-label={menuOpen ? t.nav.close : t.nav.open}
+          aria-controls="site-navigation"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
         >

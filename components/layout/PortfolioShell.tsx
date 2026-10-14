@@ -13,12 +13,15 @@ import { SideRail } from "./SideRail";
 
 function PortfolioContent() {
   const { theme } = useTheme();
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
 
   return (
     <div className="site-shell" data-theme={theme}>
+      <a className="skip-link" href="#main-content">
+        {t.nav.skip}
+      </a>
       <SideRail />
-      <main className="site-main" lang={locale} id="top">
+      <main className="site-main" lang={locale} id="main-content" tabIndex={-1}>
         <HeroSection />
         <AboutSection />
         <ProjectsSection />

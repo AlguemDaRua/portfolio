@@ -1,10 +1,22 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const title = "Azam Usman — Desenvolvedor de Software";
+const description =
+  "Da interface à infraestrutura. Portfólio de Azam Usman: aplicações móveis, backend e sistemas completos. Maputo, Moçambique.";
+
 export const metadata: Metadata = {
-  title: "Azam Usman — Desenvolvedor de Software",
-  description:
-    "Portfólio profissional de Azam Usman — Especialista em desenvolvimento móvel (Flutter), backends de alto desempenho (Go, Java), Docker, CI/CD e engenharia full-stack em Maputo, Moçambique.",
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    siteName: "Azam Usman",
+    type: "website",
+    locale: "pt_MZ",
+    alternateLocale: ["en_US"],
+  },
+  twitter: { card: "summary", title, description },
   authors: [{ name: "Azam Usman" }],
   keywords: [
     "Azam Usman",
@@ -64,9 +76,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen font-sans antialiased">
-        {children}
-      </body>
+      <body className="min-h-screen font-sans antialiased">{children}</body>
     </html>
   );
 }

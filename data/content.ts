@@ -4,6 +4,10 @@ export const portfolioContent: ContentDictionary = {
   pt: {
     nav: {
       home: "Início",
+      label: "Navegação principal",
+      open: "Abrir navegação",
+      close: "Fechar navegação",
+      skip: "Saltar para o conteúdo",
       about: "Sobre",
       work: "Projectos",
       skills: "Competências",
@@ -18,9 +22,11 @@ export const portfolioContent: ContentDictionary = {
       darkAction: "Mudar para tema escuro",
     },
     hero: {
-      eyebrow: "AZAM USMAN · DESENVOLVEDOR DE SOFTWARE · MAPUTO, MOÇAMBIQUE",
-      title: "Desenvolvo software.",
-      text: "Aplicações móveis inovadoras, backends de alta performance em Go e Java, contentorização com Docker e arquitecturas completas em produção.",
+      eyebrow: "DESENVOLVEDOR DE SOFTWARE",
+      edition: "PORTFÓLIO / 2026",
+      title: "Desenvolvo",
+      titleAccent: "software.",
+      text: "Da interface à infraestrutura. Crio aplicações móveis, serviços de backend e sistemas completos, com atenção ao detalhe em cada etapa.",
       work: "Ver projectos seleccionados",
       about: "Sobre mim",
       cv: "Ver currículos em PDF",
@@ -42,7 +48,8 @@ export const portfolioContent: ContentDictionary = {
     work: {
       label: "02 / PROJECTOS",
       title: "Projectos seleccionados",
-      intro: "Uma selecção de projectos recentes desenvolvidos em contexto profissional, pessoal e académico.",
+      intro:
+        "Uma selecção de projectos recentes desenvolvidos em contexto profissional, pessoal e académico.",
       moreLabel: "OUTROS PROJECTOS",
       moreProjects: "BLink · Gestão de Reclamações",
     },
@@ -54,7 +61,14 @@ export const portfolioContent: ContentDictionary = {
         year: "2025—26",
         description:
           "Plataforma completa de recrutamento com interface web reactiva e de alta performance, API REST robusta, fluxos seguros de autenticação, catálogo de vagas e esteira de candidaturas.",
-        tags: ["Full-Stack", "REST API", "React", "Node.js", "Express", "PostgreSQL"],
+        tags: [
+          "Full-Stack",
+          "REST API",
+          "React",
+          "Node.js",
+          "Express",
+          "PostgreSQL",
+        ],
       },
       {
         name: "LibreDex",
@@ -72,7 +86,13 @@ export const portfolioContent: ContentDictionary = {
         year: "2025",
         description:
           "Solução móvel integrada para gestão e reserva de lugares de estacionamento. Inclui painel administrativo em tempo real, Firebase, geolocalização e controlo dinâmico de ocupação.",
-        tags: ["Flutter", "Firebase", "Geolocalização", "Mobile", "Real-Time DB"],
+        tags: [
+          "Flutter",
+          "Firebase",
+          "Geolocalização",
+          "Mobile",
+          "Real-Time DB",
+        ],
       },
     ],
     skills: {
@@ -137,7 +157,8 @@ export const portfolioContent: ContentDictionary = {
           langCode: "PT",
           title: "Currículo em Português",
           badge: "EDIÇÃO PT",
-          description: "Perfil completo com histórico profissional, formação em Engenharia no ISUTC, projectos práticos e competências técnicas.",
+          description:
+            "Perfil completo com histórico profissional, formação em Engenharia no ISUTC, projectos práticos e competências técnicas.",
           fileSize: "PDF · 232 KB",
           filePath: "/pdf/CV_AzamUsman_PT.pdf",
           downloadLabel: "Descarregar PDF",
@@ -145,13 +166,14 @@ export const portfolioContent: ContentDictionary = {
         },
         {
           langCode: "EN",
-          title: "Curriculum Vitae (English)",
-          badge: "EDITION EN",
-          description: "Comprehensive background covering systems engineering, ISUTC education, mobile/backend architectures, and DevOps.",
+          title: "Currículo em Inglês",
+          badge: "EDIÇÃO EN",
+          description:
+            "A mesma experiência e competências, numa edição em inglês para oportunidades e equipas internacionais.",
           fileSize: "PDF · 212 KB",
           filePath: "/pdf/CV_AzamUsman_EN.pdf",
-          downloadLabel: "Download PDF",
-          viewLabel: "Open in browser",
+          downloadLabel: "Descarregar PDF",
+          viewLabel: "Visualizar",
         },
       ],
     },
@@ -161,7 +183,9 @@ export const portfolioContent: ContentDictionary = {
       text: "Tens um projeto em mente, uma oportunidade ou gostarias de discutir engenharia de software? Envia-me uma mensagem direta.",
       email: "azamusman@proton.me",
       copyEmail: "Copiar e-mail",
-      copied: "Copiado com sucesso!",
+      copied: "E-mail copiado!",
+      copyError:
+        "Não foi possível copiar. Seleciona o endereço acima ou abre-o no teu cliente de e-mail.",
       footer: "© 2026 Azam Usman · Todos os direitos reservados.",
       backTop: "Voltar ao topo",
     },
@@ -169,6 +193,10 @@ export const portfolioContent: ContentDictionary = {
   en: {
     nav: {
       home: "Home",
+      label: "Main navigation",
+      open: "Open navigation",
+      close: "Close navigation",
+      skip: "Skip to content",
       about: "About",
       work: "Projects",
       skills: "Skills",
@@ -183,9 +211,11 @@ export const portfolioContent: ContentDictionary = {
       darkAction: "Switch to dark theme",
     },
     hero: {
-      eyebrow: "AZAM USMAN · SOFTWARE DEVELOPER · MAPUTO, MOZAMBIQUE",
-      title: "I build software.",
-      text: "Innovative mobile apps, high-throughput backends in Go and Java, Docker containerization, and robust production-ready architectures.",
+      eyebrow: "SOFTWARE DEVELOPER",
+      edition: "PORTFOLIO / 2026",
+      title: "I build",
+      titleAccent: "software.",
+      text: "From interface to infrastructure. I build mobile apps, backend services, and complete systems, with attention to detail at every step.",
       work: "View selected projects",
       about: "About me",
       cv: "View CVs in PDF",
@@ -207,7 +237,8 @@ export const portfolioContent: ContentDictionary = {
     work: {
       label: "02 / WORK",
       title: "Selected projects",
-      intro: "A curated selection of recent work across professional, personal, and academic projects.",
+      intro:
+        "A curated selection of recent work across professional, personal, and academic projects.",
       moreLabel: "MORE PROJECTS",
       moreProjects: "BLink · Complaints Management",
     },
@@ -219,7 +250,14 @@ export const portfolioContent: ContentDictionary = {
         year: "2025—26",
         description:
           "End-to-end recruitment solution with a responsive web interface, scalable REST API, secure authentication pipelines, job board listings, and applicant tracking flows.",
-        tags: ["Full-Stack", "REST API", "React", "Node.js", "Express", "PostgreSQL"],
+        tags: [
+          "Full-Stack",
+          "REST API",
+          "React",
+          "Node.js",
+          "Express",
+          "PostgreSQL",
+        ],
       },
       {
         name: "LibreDex",
@@ -302,7 +340,8 @@ export const portfolioContent: ContentDictionary = {
           langCode: "PT",
           title: "Portuguese Edition",
           badge: "PT EDITION",
-          description: "Full professional profile including ISUTC engineering degree, hands-on production projects, and software stack.",
+          description:
+            "Full professional profile including ISUTC engineering degree, hands-on production projects, and software stack.",
           fileSize: "PDF · 232 KB",
           filePath: "/pdf/CV_AzamUsman_PT.pdf",
           downloadLabel: "Download PDF",
@@ -312,7 +351,8 @@ export const portfolioContent: ContentDictionary = {
           langCode: "EN",
           title: "English Edition",
           badge: "EN EDITION",
-          description: "Comprehensive background covering systems engineering, ISUTC education, mobile/backend architectures, and DevOps.",
+          description:
+            "Comprehensive background covering systems engineering, ISUTC education, mobile/backend architectures, and DevOps.",
           fileSize: "PDF · 212 KB",
           filePath: "/pdf/CV_AzamUsman_EN.pdf",
           downloadLabel: "Download PDF",
@@ -326,7 +366,9 @@ export const portfolioContent: ContentDictionary = {
       text: "Have a project in mind, an exciting opportunity, or want to connect about software engineering? Send me a direct message.",
       email: "azamusman@proton.me",
       copyEmail: "Copy email",
-      copied: "Copied to clipboard!",
+      copied: "Email copied!",
+      copyError:
+        "Could not copy. Select the address above or open it in your email client.",
       footer: "© 2026 Azam Usman · All rights reserved.",
       backTop: "Back to top",
     },

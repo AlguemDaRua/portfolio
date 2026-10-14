@@ -1,50 +1,49 @@
 "use client";
 
-import React from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { ArrowUpRight } from "@/components/ui/Icons";
-import { ScrambleText } from "@/components/ui/ScrambleText";
 
 export function HeroSection() {
   const { t } = useLanguage();
 
   return (
-    <section className="hero page-wrap" id="top">
-      <span className="eyebrow hero-eyebrow">
-        <i />
-        <ScrambleText text={t.hero.eyebrow} />
-      </span>
+    <section className="hero page-wrap" id="top" aria-labelledby="hero-title">
+      <div className="hero-meta">
+        <span>{t.hero.edition}</span>
+        <span>{t.about.location}</span>
+      </div>
 
-      <h1>
-        <ScrambleText text={t.hero.title} duration={500} />
-      </h1>
-
-      <p className="hero-intro">
-        <ScrambleText text={t.hero.text} duration={400} />
-      </p>
-
-      <div className="hero-actions">
-        <a className="primary-link" href="#about">
-          <ScrambleText text={t.hero.about} />
-          <span>↓</span>
-        </a>
-
-        <a className="text-link" href="#work">
-          <ScrambleText text={t.hero.work} />
-          <ArrowUpRight className="w-3.5 h-3.5" />
-        </a>
-
-        <a className="cv-link" href="#resume">
-          <ScrambleText text={t.hero.cv} />
-          <span>↘</span>
-        </a>
+      <div className="hero-content">
+        <span className="eyebrow hero-eyebrow">
+          <i aria-hidden="true" />
+          {t.hero.eyebrow}
+        </span>
+        <h1 id="hero-title">
+          {t.hero.title}
+          <br />
+          <span className="hero-title-secondary">{t.hero.titleAccent}</span>
+        </h1>
+        <p className="hero-intro">{t.hero.text}</p>
+        <div className="hero-actions">
+          <a className="primary-link" href="#work">
+            {t.hero.work}
+            <ArrowUpRight />
+          </a>
+          <a className="text-link" href="#about">
+            {t.hero.about}
+            <span aria-hidden="true">↓</span>
+          </a>
+          <a className="cv-link" href="#resume">
+            {t.hero.cv}
+          </a>
+        </div>
       </div>
 
       <div className="hero-bottom">
-        <span>
-          <ScrambleText text={t.hero.focus} />
-        </span>
-        <span>01 / 05</span>
+        <span>{t.hero.focus}</span>
+        <a href="#about" aria-label={t.hero.about}>
+          <span aria-hidden="true">↓</span>
+        </a>
       </div>
     </section>
   );
