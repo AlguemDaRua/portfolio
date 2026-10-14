@@ -9,6 +9,7 @@
   flex-direction: column;
   width: 192px;
   padding: 20px 14px 12px;
+  max-height: calc(100vh - 32px);
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
   scrollbar-width: thin;

@@ -56,20 +56,45 @@ A preferência inicial respeita o tema do sistema e é carregada antes da primei
 
 ### Como funciona
 
-- `ThemeToggle` continua a usar `changeTheme` do contexto, sem coordenadas do botão nem alterações na composição das secções.
-- `ThemeContext` usa `document.startViewTransition()` e `flushSync` para capturar os dois temas com os tokens corretos. Desativa temporariamente as transições de cor dos componentes para não capturar cores intermédias.
-- `lib/theme-paint.ts` gera contornos irregulares com curvas quadráticas e pequenas manchas satélite num Canvas 2D **fora do DOM**. A cada `requestAnimationFrame`, apenas os novos impactos são carimbados, já no tamanho final. A tinta anterior nunca é apagada, aumentada ou redesenhada. O PNG procedural é aplicado como máscara de alfa ao pseudo-elemento `::view-transition-new(root)`; nunca é uma camada de tinta opaca sobre o texto.
-- `styles/theme-transition.css` mantém a captura antiga por baixo e a nova por cima, sem fades ou inversão de cores. Assim, uma gota a meio de uma letra revela nessa parte a letra do tema novo. A máscara inicial é transparente; uma animação de opacidade constante mantém as capturas vivas até o Canvas terminar.
-- A última máscara totalmente coberta tem uma oportunidade de pintura antes da remoção das capturas. Frames, estilos temporários, animação e memória do Canvas são libertados também em interrupções e erros.
+- `ThemeToggle` continua a usar `changeTheme`, sem coordenadas do botão nem alterações na composição das secções.
+- `lib/theme-snapshot.ts` cria uma cópia visual temporária do portfólio no **tema antigo**, fixando os tokens computados. A cópia é `inert`, `aria-hidden`, não interceta cliques e não duplica IDs. A posição do conteúdo, da barra fixa e do cabeçalho sticky é preservada, mesmo com a página deslocada.
+- `ThemeContext` faz o commit do tema novo na árvore React real, por baixo dessa cópia. Nenhuma inversão de cores é usada.
+- `lib/theme-paint.ts` gera os mesmos salpicos irregulares com curvas quadráticas e manchas satélite num Canvas 2D **fora do DOM**. A máscara começa opaca; cada novo impacto usa `destination-out` para abrir um recorte na cópia antiga. Nesse recorte vê-se o tema novo real, incluindo as letras e os componentes.
+- A máscara é aplicada diretamente a um **elemento HTML normal**, com `mask-image` e o equivalente `-webkit-mask-image`. Não depende de `document.startViewTransition()`, animação de pseudo-elementos, deteção do nome do browser ou `mix-blend-mode: difference`.
+- A tinta que já caiu nunca cresce nem é redesenhada. No fim, a máscara completamente apagada tem uma oportunidade de pintura antes da remoção da cópia. Frames, listeners, cópia e memória do Canvas são libertados também em interrupções e erros.
 
-Escolheu-se a máscara, em vez de `mix-blend-mode: difference`, porque os fundos não são branco/preto puros e os tokens incluem azul de destaque. A inversão não produziria as cores reais do tema de destino.
+A cópia visual foi desenhada para os componentes estáticos deste portfólio, não como biblioteca genérica de screenshots de qualquer DOM. Ao acrescentar vídeos, iframes, Canvas visíveis ou componentes com seletores dependentes de IDs, rever a fidelidade da cópia e os testes de alinhamento.
 
 ### Compatibilidade e desempenho
 
-Sem View Transitions, máscaras CSS ou Canvas 2D, e com `prefers-reduced-motion`, o tema muda sem o efeito de gotas. Redimensionar, deslocar a página, ocultar o separador ou ativar movimento reduzido durante o efeito termina a animação no tema solicitado. Cliques sucessivos invalidam callbacks antigos: prevalece a última escolha. A persistência e a sincronização com o sistema/outros separadores continuam no contexto.
+O objetivo é **compatibilidade funcional com melhoria progressiva**, não garantir animações idênticas em todos os browsers e versões existentes. A aplicação continua a depender dos browsers modernos suportados por Next.js e Tailwind CSS.
 
-O Canvas usa `willReadFrequently` para evitar leituras dispendiosas da GPU. A resolução da máscara acompanha o viewport, com DPR máximo de 2 e um orçamento aproximado de 2 milhões de píxeis; em ecrãs maiores só a máscara é reamostrada, não o texto. A regra CSS atualizada pertence apenas ao pseudo-elemento, evitando alterar uma variável herdada em toda a árvore DOM a cada frame. A codificação PNG e a composição continuam dependentes do browser/dispositivo: não há garantia de 60/120 fps.
+| Capacidade | Comportamento |
+| --- | --- |
+| Canvas 2D e máscaras CSS normais | Salpicos nos dois sentidos, independentemente de existir View Transitions |
+| Movimento reduzido ou separador oculto | Mudança de tema sem animação |
+| Máscaras/Canvas indisponíveis, leitura do Canvas bloqueada ou erro de codificação | Mudança direta, sem deixar uma cópia a tapar a página |
+| `localStorage` bloqueado | Tema e idioma funcionam na sessão, sem prometer persistência |
+| Clipboard indisponível/negado | Mensagem de erro; endereço selecionável e ligação `mailto:` continuam disponíveis |
+| Unidades `svh`/`dvh` indisponíveis | Dimensões alternativas em `vh` |
 
-`tests/theme.test.ts` verifica a distribuição determinística, chegada progressiva, geometria fixa desde o impacto, ausência de círculos/crescimento/redesenho, cobertura geométrica de todas as células (incluindo viewports extremos), ciclo de vida do Canvas, limpeza e contrato de estilos. As antigas verificações específicas de SVG/`@property` foram substituídas pelas da máscara Canvas.
+Redimensionar, deslocar a página, ocultar o separador ou ativar movimento reduzido durante o efeito termina a animação no tema solicitado. Cliques sucessivos invalidam callbacks antigos: prevalece a última escolha.
 
-Verificação visual recomendada: alternar nos dois sentidos em desktop/mobile, observar salpicos a cair sobre o título e links azuis, testar cliques rápidos, redimensionamento e movimento reduzido. Não devem aparecer letras tapadas, cores invertidas, fades globais nem recursos de máscara pendurados após a transição.
+O Canvas usa `willReadFrequently` para evitar leituras dispendiosas da GPU. A máscara tem DPR máximo de 2 e um orçamento aproximado de 2 milhões de píxeis; em ecrãs maiores só a máscara é reamostrada, não o texto. As propriedades da máscara são atualizadas diretamente no elemento temporário, sem invalidar variáveis herdadas em toda a cópia. O desempenho depende do dispositivo: não há garantia de 60/120 fps.
+
+### Testes entre motores
+
+```bash
+npm ci
+npm run test:all
+npx playwright install --with-deps chromium firefox webkit
+npm run test:browser
+# Apenas o motor usado como base pelo Firefox/Zen:
+npm run test:browser -- --project=firefox
+```
+
+O Playwright inicia o build de produção na porta 3100. `PLAYWRIGHT_BASE_URL` permite usar um servidor local já iniciado (fora de CI). A CI executa projetos separados para Chromium, Firefox e WebKit, além dos testes unitários/build.
+
+`tests/theme.test.ts` verifica distribuição, geometria fixa, cobertura, acumulação e limpeza. `e2e/compatibility.spec.ts` verifica a animação **com View Transitions removido**, separação dos tokens, alinhamento desktop/mobile após scroll, máscara final, cliques rápidos, movimento reduzido, redimensionamento, falhas de APIs, idiomas, menu e PDFs.
+
+Testar os três motores reduz regressões, mas não certifica todas as versões de Zen, Safari/iOS ou browsers modificados. Confirmar também no browser/dispositivo real, especialmente com extensões e proteções de privacidade que possam bloquear Canvas.

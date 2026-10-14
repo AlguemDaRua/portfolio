@@ -8,6 +8,7 @@ import React, {
   useSyncExternalStore,
 } from "react";
 import { flushSync } from "react-dom";
+import { createThemeSnapshot, type ThemeSnapshot } from "@/lib/theme-snapshot";
 import {
   createThemePaint,
   createThemeTransition,
@@ -28,7 +29,7 @@ let activeTarget: ThemeMode | null = null;
 let disposeActiveTransition: (() => void) | null = null;
 
 function cancelThemeTransition() {
-  // Invalidate pending update callbacks too: skipTransition does not cancel them.
+  // Invalidate completion callbacks from any previous paint session.
   activeTransitionVersion += 1;
   disposeActiveTransition?.();
   disposeActiveTransition = null;
@@ -38,7 +39,9 @@ function cancelThemeTransition() {
 function readStoredTheme(): ThemeMode | null {
   try {
     const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
+    return storedTheme === "light" || storedTheme === "dark"
+      ? storedTheme
+      : null;
   } catch {
     return null;
   }
@@ -55,7 +58,8 @@ function getThemeSnapshot(): ThemeMode {
   if (storedTheme) return storedTheme;
 
   const documentTheme = document.documentElement.getAttribute("data-theme");
-  if (documentTheme === "light" || documentTheme === "dark") return documentTheme;
+  if (documentTheme === "light" || documentTheme === "dark")
+    return documentTheme;
 
   return getSystemTheme();
 }
@@ -117,7 +121,8 @@ function applyTheme(theme: ThemeMode) {
 }
 
 function supportsPaintMasks(): boolean {
-  if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return false;
+  if (typeof CSS === "undefined" || typeof CSS.supports !== "function")
+    return false;
 
   return (
     CSS.supports("mask-image", "linear-gradient(black, black)") ||
@@ -140,40 +145,47 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     cancelThemeTransition();
     const root = document.documentElement;
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (
-      motion.matches ||
-      document.hidden ||
-      !supportsPaintMasks() ||
-      typeof document.startViewTransition !== "function"
-    ) {
+    if (motion.matches || document.hidden || !supportsPaintMasks()) {
+      applyTheme(nextTheme);
+      return;
+    }
+
+    const source = document.querySelector<HTMLElement>(".site-shell");
+    if (!source) {
       applyTheme(nextTheme);
       return;
     }
 
     const version = activeTransitionVersion;
+    let snapshot: ThemeSnapshot | null = null;
     let paint: ReturnType<typeof createThemePaint>;
+    root.classList.add("theme-transitioning");
     try {
-      paint = createThemePaint(createThemeTransition(
-        nextTheme,
-        window.innerWidth,
-        window.innerHeight,
-      ));
+      snapshot = createThemeSnapshot(source);
+      paint = createThemePaint(
+        createThemeTransition(nextTheme, root.clientWidth, root.clientHeight),
+        snapshot.element,
+      );
     } catch {
+      snapshot?.dispose();
+      root.classList.remove("theme-transitioning");
       applyTheme(nextTheme);
       return;
     }
-
-    let viewTransition: ViewTransition | null = null;
-    let keepAlive: Animation | null = null;
     activeTarget = nextTheme;
-    root.classList.add("theme-transitioning");
 
     const finish = () => {
       if (version !== activeTransitionVersion) return;
       cancelThemeTransition();
-      // A resize/motion change can happen even before the update callback ran.
-      // Commit the requested theme synchronously instead of leaving it pending.
+      // Keep the requested theme even if painting was interrupted or failed.
       applyTheme(nextTheme);
+    };
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const onScroll = () => {
+      // A pending scroll event from focusing/clicking the toggle can arrive
+      // after setup. Only invalidate the copy if its coordinates changed.
+      if (window.scrollX !== scrollX || window.scrollY !== scrollY) finish();
     };
     const onVisibilityChange = () => {
       if (document.hidden) finish();
@@ -181,51 +193,42 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const onMotionChange = () => {
       if (motion.matches) finish();
     };
-    const watchdog = window.setTimeout(finish, THEME_TRANSITION_DURATION_MS + 2_000);
+    const watchdog = window.setTimeout(
+      finish,
+      THEME_TRANSITION_DURATION_MS + 2_000,
+    );
     window.addEventListener("resize", finish);
-    window.addEventListener("scroll", finish, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
     document.addEventListener("visibilitychange", onVisibilityChange);
     motion.addEventListener("change", onMotionChange);
 
     disposeActiveTransition = () => {
-      viewTransition?.skipTransition();
-      keepAlive?.cancel();
       paint.dispose();
+      snapshot?.dispose();
       window.clearTimeout(watchdog);
       window.removeEventListener("resize", finish);
-      window.removeEventListener("scroll", finish);
+      window.removeEventListener("scroll", onScroll);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       motion.removeEventListener("change", onMotionChange);
       root.classList.remove("theme-transitioning");
     };
 
+    // The old copy already covers the viewport. Commit the actual React tree
+    // underneath it, then reveal it with ordinary CSS masking. No UA sniffing,
+    // View Transitions API, or WAAPI pseudo-element support is required.
     try {
-      viewTransition = document.startViewTransition(() => {
-        if (version !== activeTransitionVersion) return;
-        flushSync(() => applyTheme(nextTheme));
-      });
+      flushSync(() => applyTheme(nextTheme));
+      paint.play(finish);
     } catch {
       finish();
-      return;
     }
-
-    void viewTransition.ready.then(() => {
-      if (version !== activeTransitionVersion) return;
-      // With the UA fades disabled the browser would immediately discard the
-      // snapshots. A constant-opacity WAAPI animation keeps them alive for rAF.
-      keepAlive = root.animate(
-        [{ opacity: 1 }, { opacity: 1 }],
-        { duration: THEME_TRANSITION_DURATION_MS, iterations: Infinity,
-          pseudoElement: "::view-transition-new(root)" },
-      );
-      paint.play(finish);
-    }).catch(finish);
-    void viewTransition.finished.then(finish, finish);
   }, []);
 
   const value = useMemo(() => ({ theme, changeTheme }), [theme, changeTheme]);
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  );
 }
 
 export function useTheme() {

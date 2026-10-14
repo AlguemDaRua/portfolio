@@ -117,26 +117,36 @@ export function createThemeTransition(
   // Fine and medium spray falls throughout the effect, including the first
   // frame. Larger coverage stamps join it later, all in shuffled locations.
   for (let index = 0; index < coverageCount; index += 1) {
-    drops.push(createDrop(
-      random() * width,
-      random() * height,
-      Math.min(cellWidth, cellHeight) * between(random, 0.16, 0.65),
-      (index / coverageCount) * 1_500,
-      random,
-    ));
+    drops.push(
+      createDrop(
+        random() * width,
+        random() * height,
+        Math.min(cellWidth, cellHeight) * between(random, 0.16, 0.65),
+        (index / coverageCount) * 1_500,
+        random,
+      ),
+    );
   }
   drops.sort((left, right) => left.delay - right.delay);
   return { theme, width, height, drops };
 }
 
-function drawOutline(context: CanvasRenderingContext2D, points: PaintPoint[]): void {
+function drawOutline(
+  context: CanvasRenderingContext2D,
+  points: PaintPoint[],
+): void {
   const last = points[points.length - 1];
   const first = points[0];
   context.beginPath();
   context.moveTo((last.x + first.x) / 2, (last.y + first.y) / 2);
   points.forEach((point, index) => {
     const next = points[(index + 1) % points.length];
-    context.quadraticCurveTo(point.x, point.y, (point.x + next.x) / 2, (point.y + next.y) / 2);
+    context.quadraticCurveTo(
+      point.x,
+      point.y,
+      (point.x + next.x) / 2,
+      (point.y + next.y) / 2,
+    );
   });
   context.closePath();
   context.fill();
@@ -150,7 +160,10 @@ export function drawThemePaintFrame(
   nextDrop = 0,
 ): number {
   context.fillStyle = "#ffffff";
-  while (nextDrop < transition.drops.length && transition.drops[nextDrop].delay <= elapsed) {
+  while (
+    nextDrop < transition.drops.length &&
+    transition.drops[nextDrop].delay <= elapsed
+  ) {
     const drop = transition.drops[nextDrop];
     drawOutline(context, drop.outline);
     drop.specks.forEach((points) => drawOutline(context, points));
@@ -166,7 +179,10 @@ export interface ThemePaint {
   dispose: () => void;
 }
 
-export function createThemePaint(transition: ThemeTransition): ThemePaint {
+export function createThemePaint(
+  transition: ThemeTransition,
+  target: HTMLElement,
+): ThemePaint {
   // Detached HTML canvas: never mounted over content, never an external image.
   const canvas = document.createElement("canvas");
   const scale = Math.min(
@@ -180,18 +196,16 @@ export function createThemePaint(transition: ThemeTransition): ThemePaint {
   // expensive GPU readback (especially on mobile and software-rendered GPUs).
   const context = canvas.getContext("2d", { willReadFrequently: true });
   if (!context) throw new Error("Canvas 2D is unavailable");
-  context.scale(canvas.width / transition.width, canvas.height / transition.height);
+  context.scale(
+    canvas.width / transition.width,
+    canvas.height / transition.height,
+  );
 
-  // Update only the pseudo-element's rule, not an inherited variable on <html>
-  // (which would invalidate styles throughout the portfolio on every frame).
-  const stylesheet = document.createElement("style");
-  stylesheet.textContent = "html.theme-transitioning::view-transition-new(root) {}";
-  document.head.appendChild(stylesheet);
-  const rule = stylesheet.sheet?.cssRules[0] as CSSStyleRule | undefined;
-  if (!rule) {
-    stylesheet.remove();
-    throw new Error("Canvas mask stylesheet is unavailable");
-  }
+  // The mask starts opaque: the old themed DOM copy is initially intact.
+  // Each full-size impact punches a hole through it to the real new theme.
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, transition.width, transition.height);
+  context.globalCompositeOperation = "destination-out";
 
   let frame: number | null = null;
   let disposed = false;
@@ -200,7 +214,8 @@ export function createThemePaint(transition: ThemeTransition): ThemePaint {
     if (disposed) return;
     disposed = true;
     if (frame !== null) window.cancelAnimationFrame(frame);
-    stylesheet.remove();
+    target.style.removeProperty("mask-image");
+    target.style.removeProperty("-webkit-mask-image");
     // Release the backing store, even when the transition was interrupted.
     canvas.width = canvas.height = 0;
   };
@@ -217,12 +232,24 @@ export function createThemePaint(transition: ThemeTransition): ThemePaint {
         try {
           const elapsed = now - start;
           const previousDrop = nextDrop;
-          nextDrop = drawThemePaintFrame(context, transition, elapsed, nextDrop);
+          nextDrop = drawThemePaintFrame(
+            context,
+            transition,
+            elapsed,
+            nextDrop,
+          );
           if (nextDrop !== previousDrop) {
-            rule.style.setProperty("--theme-paint-mask", `url("${canvas.toDataURL("image/png")}")`);
+            const image = canvas.toDataURL("image/png");
+            if (!image.startsWith("data:image/png"))
+              throw new Error("Invalid canvas mask");
+            const mask = `url("${image}")`;
+            // Direct properties avoid invalidating inherited variables on the
+            // entire copied subtree, and support older prefixed WebKit too.
+            target.style.setProperty("-webkit-mask-image", mask);
+            target.style.setProperty("mask-image", mask);
           }
-          // Give the fully covered mask a paint opportunity before removing the
-          // snapshots. No finishing rectangle, crossfade, or color inversion.
+          // Give the fully erased mask a paint opportunity before removing the
+          // snapshot. No finishing rectangle, crossfade, or color inversion.
           frame = window.requestAnimationFrame(
             elapsed >= THEME_TRANSITION_DURATION_MS ? onComplete : tick,
           );

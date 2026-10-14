@@ -1,4 +1,4 @@
-/* Freeze token transitions so both snapshots contain their exact theme colors. */
+/* Freeze transitions so old and new content always use exact theme tokens. */
 html.theme-transitioning,
 html.theme-transitioning *,
 html.theme-transitioning *::before,
@@ -6,29 +6,19 @@ html.theme-transitioning *::after {
   transition: none !important;
 }
 
-html.theme-transitioning::view-transition {
+/* A visual-only copy of the OLD theme above the real, interactive NEW theme.
+   Canvas erases this mask with stationary splatters. Both backgrounds and
+   glyphs remain visible, without color inversion or native snapshot APIs. */
+.theme-snapshot {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
   pointer-events: none;
-}
-
-html.theme-transitioning::view-transition-group(root),
-html.theme-transitioning::view-transition-image-pair(root),
-html.theme-transitioning::view-transition-old(root),
-html.theme-transitioning::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
-html.theme-transitioning::view-transition-old(root) {
-  z-index: 1;
-  opacity: 1;
-}
-
-html.theme-transitioning::view-transition-new(root) {
-  z-index: 2;
-  opacity: 1;
-  /* Transparent until the first Canvas frame, including while ready is pending. */
-  -webkit-mask-image: var(--theme-paint-mask, linear-gradient(transparent, transparent));
-  mask-image: var(--theme-paint-mask, linear-gradient(transparent, transparent));
+  -webkit-mask-image: linear-gradient(black, black);
+  mask-image: linear-gradient(black, black);
   mask-mode: alpha;
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
@@ -36,4 +26,16 @@ html.theme-transitioning::view-transition-new(root) {
   mask-position: 0 0;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
+}
+
+.theme-snapshot * {
+  pointer-events: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce), print {
+  .theme-snapshot {
+    display: none !important;
+  }
 }
