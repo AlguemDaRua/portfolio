@@ -1,3 +1,5 @@
+import { ScrambleText } from "@/components/ui/ScrambleText";
+
 interface SectionHeadingProps {
   id: string;
   label: string;
@@ -14,10 +16,18 @@ export function SectionHeading({
   return (
     <div className="section-heading">
       <div>
-        <span className="eyebrow">{label}</span>
-        <h2 id={id}>{title}</h2>
+        <span className="eyebrow">
+          <ScrambleText text={label} />
+        </span>
+        <h2 id={id}>
+          <ScrambleText text={title} />
+        </h2>
       </div>
-      {description && <p>{description}</p>}
+      {description && (
+        <p>
+          <ScrambleText text={description} />
+        </p>
+      )}
     </div>
   );
 }

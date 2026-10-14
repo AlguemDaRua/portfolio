@@ -469,7 +469,7 @@
   background: var(--active-bg);
 }
 
-/* A single, direct call to action. */
+/* Contact: a private-recipient form, without a public email address. */
 .contact-section {
   border-block: 1px solid var(--line);
   background: var(--soft);
@@ -477,7 +477,7 @@
 .contact-inner {
   display: grid;
   grid-template-columns: 1fr 0.85fr;
-  align-items: center;
+  align-items: start;
   gap: 48px;
   padding-block: var(--section-space);
 }
@@ -496,60 +496,110 @@
   font-size: 14px;
   line-height: 1.8;
 }
-.contact-actions-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+.contact-form {
+  min-width: 0;
+  width: 100%;
+}
+.contact-form fieldset {
+  display: grid;
   gap: 20px;
   min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
-.email-link {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-block: 16px;
-  border-bottom: 1px solid var(--control);
-  font-size: clamp(16px, 1.6vw, 23px);
-  letter-spacing: -0.035em;
-  overflow-wrap: anywhere;
-}
-.email-link svg {
-  width: 22px;
-  height: 22px;
-  color: var(--accent);
-}
-.email-link:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-.copy-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.contact-field {
+  display: grid;
   gap: 8px;
-  min-height: 44px;
-  padding: 10px 14px;
+  min-width: 0;
+}
+.contact-field label {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 550;
+}
+.contact-field :is(input, textarea) {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 14px;
   border: 1px solid var(--control);
   border-radius: var(--radius-small);
   background: var(--paper);
-  color: var(--body-text);
-  font-size: 12px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.contact-field textarea {
+  resize: vertical;
+  min-height: 150px;
+}
+.contact-field :is(input, textarea)::placeholder {
+  color: var(--meta);
+  opacity: 1;
+}
+.contact-field :is(input, textarea):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.contact-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 48px;
+  padding: 12px 18px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-small);
+  background: var(--ink);
+  color: var(--inverse-text);
+  font-size: 13px;
   cursor: pointer;
 }
-.copy-btn svg {
-  width: 15px;
-  height: 15px;
-}
-.copy-btn:hover {
-  color: var(--accent);
+.contact-submit:not(:disabled):hover {
   border-color: var(--accent);
+  background: var(--accent);
 }
-.copy-feedback {
+.contact-submit:disabled {
+  cursor: not-allowed;
+  background: var(--soft);
+  color: var(--body-muted);
+  border-color: var(--control);
+}
+.contact-form[aria-busy="true"] .contact-submit {
+  cursor: wait;
+}
+.contact-submit svg {
+  width: 18px;
+  height: 18px;
+}
+.contact-hint,
+.contact-privacy,
+.contact-feedback {
+  color: var(--body-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.contact-hint {
+  margin: 0 0 20px;
+}
+.contact-privacy {
+  margin: 18px 0 0;
+}
+.contact-privacy a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.contact-feedback {
+  margin: 14px 0 0;
+  color: var(--ink);
+}
+.contact-feedback:empty {
   margin: 0;
-  color: var(--body-text);
-  font-size: 13px;
+}
+.contact-trap {
+  display: none;
 }
 .site-footer {
   display: flex;

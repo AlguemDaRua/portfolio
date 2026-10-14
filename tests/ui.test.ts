@@ -45,20 +45,25 @@ test("The mobile menu declares its state and controlled navigation", () => {
       nav.close,
       nav.skip,
       nav.label,
-      contact.copyError,
+      contact.error,
     ]) {
       assert.ok(label.trim().length > 0);
     }
   }
 });
 
-test("Projects remain honest non-link entries and the email/PDF actions have real targets", () => {
+test("Projects and PDFs retain real targets; contact does not expose a recipient", () => {
   assert.equal(
     (html.match(/class="project-row"/g) ?? []).length,
     portfolioContent.pt.projects.length,
   );
   assert.doesNotMatch(html, /href="#"|href="javascript:/);
-  assert.match(html, /href="mailto:azamusman@proton.me"/);
+  assert.doesNotMatch(html, /mailto:|proton\.me/);
+  assert.match(html, /<form[^>]*class="contact-form"/);
+  for (const field of ["name", "email", "message"]) {
+    assert.match(html, new RegExp(`for="contact-${field}"`));
+    assert.match(html, new RegExp(`id="contact-${field}"`));
+  }
   assert.match(html, /role="status" aria-live="polite"/);
   for (const item of portfolioContent.pt.cv.items) {
     assert.ok(html.includes(`href="${item.filePath}"`));

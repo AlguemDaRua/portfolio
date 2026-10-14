@@ -1,5 +1,7 @@
 "use client";
 
+import { ScrambleText } from "@/components/ui/ScrambleText";
+
 import { useLanguage } from "@/context/LanguageContext";
 import {
   DownloadIcon,
@@ -34,8 +36,12 @@ export function ResumeSection() {
               <span className="resume-size">{item.fileSize}</span>
             </div>
             <div>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
+              <h3>
+                <ScrambleText text={item.title} />
+              </h3>
+              <p>
+                <ScrambleText text={item.description} />
+              </p>
             </div>
             <div className="resume-actions">
               <a
@@ -45,7 +51,9 @@ export function ResumeSection() {
                 className="resume-btn primary"
               >
                 <DownloadIcon />
-                <span>{item.downloadLabel}</span>
+                <span>
+                  <ScrambleText text={item.downloadLabel} />
+                </span>
               </a>
               <a
                 href={item.filePath}
@@ -54,7 +62,9 @@ export function ResumeSection() {
                 rel="noopener noreferrer"
                 className="resume-btn secondary"
               >
-                <span>{item.viewLabel}</span>
+                <span>
+                  <ScrambleText text={item.viewLabel} />
+                </span>
                 <ArrowUpRight />
               </a>
             </div>

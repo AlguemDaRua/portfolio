@@ -18,7 +18,7 @@
     grid-template-columns: 1fr;
     gap: 32px;
   }
-  .contact-actions-wrap {
+  .contact-form {
     width: min(100%, 480px);
   }
   .resume-card {
@@ -309,12 +309,6 @@
   }
   .contact-copy h2 {
     font-size: 42px;
-  }
-  .contact-actions-wrap {
-    gap: 16px;
-  }
-  .email-link {
-    font-size: 21px;
   }
   .site-footer {
     align-items: flex-start;

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ElementType } from "react";
 
-const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const GLYPHS = "0101アイウエオカキクケコサシスセソ$#%&*+-/<>_XYZ987654321";
 
 interface ScrambleTextProps {
   text: string;
@@ -17,7 +17,7 @@ export function ScrambleText({
   className = "",
   as: Component = "span",
   speed = 28,
-  duration = 280,
+  duration = 400,
 }: ScrambleTextProps) {
   const [display, setDisplay] = useState({ source: text, value: text });
   const previousText = useRef(text);
@@ -59,12 +59,19 @@ export function ScrambleText({
     };
   }, [text, speed, duration]);
 
+  const scrambling = display.source === text && display.value !== text;
+
   return (
-    <Component className={className}>
-      <span aria-hidden="true">
-        {display.source === text ? display.value : text}
-      </span>
-      <span className="sr-only">{text}</span>
+    <Component
+      className={`scramble-text ${className}`.trim()}
+      data-scrambling={scrambling ? "true" : undefined}
+    >
+      <span className="scramble-target">{text}</span>
+      {scrambling && (
+        <span className="scramble-glyphs" aria-hidden="true">
+          {display.value}
+        </span>
+      )}
     </Component>
   );
 }

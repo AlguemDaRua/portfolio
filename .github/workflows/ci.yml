@@ -58,6 +58,9 @@ jobs:
         run: npm run build
 
   browsers:
+    # Non-deliverable fixture: every contact request is intercepted by Playwright.
+    env:
+      NEXT_PUBLIC_FORMSUBMIT_ID: e2e-contact-fixture-only
     name: Browser / ${{ matrix.browser }}
     runs-on: ubuntu-latest
     strategy:

@@ -181,11 +181,27 @@ export const portfolioContent: ContentDictionary = {
       label: "05 / CONTACTO",
       title: "Vamos conversar.",
       text: "Tens um projeto em mente, uma oportunidade ou gostarias de discutir engenharia de software? Envia-me uma mensagem direta.",
-      email: "azamusman@proton.me",
-      copyEmail: "Copiar e-mail",
-      copied: "E-mail copiado!",
-      copyError:
-        "Não foi possível copiar. Seleciona o endereço acima ou abre-o no teu cliente de e-mail.",
+      nameLabel: "Nome",
+      emailLabel: "O teu e-mail",
+      messageLabel: "Mensagem",
+      namePlaceholder: "Como te chamas?",
+      emailPlaceholder: "Para onde posso responder?",
+      messagePlaceholder: "Conta-me um pouco sobre o teu projeto ou ideia…",
+      required: "Todos os campos são obrigatórios.",
+      send: "Enviar mensagem",
+      sending: "A enviar…",
+      sent: "Mensagem aceite para envio. Obrigado pelo contacto!",
+      error:
+        "Não foi possível confirmar o envio. O teu texto foi mantido; tenta novamente mais tarde.",
+      invalid:
+        "Preenche o nome, um e-mail válido e uma mensagem com pelo menos 10 caracteres.",
+      unavailable:
+        "O formulário está temporariamente indisponível. Tenta novamente mais tarde.",
+      privacy:
+        "O teu nome, e-mail e mensagem são enviados através do FormSubmit para que eu possa responder. Não incluas informações sensíveis.",
+      privacyLink: "Privacidade do FormSubmit",
+      noScript:
+        "Sem JavaScript, o envio continua na página de confirmação do FormSubmit.",
       footer: "© 2026 Azam Usman · Todos os direitos reservados.",
       backTop: "Voltar ao topo",
     },
@@ -364,11 +380,27 @@ export const portfolioContent: ContentDictionary = {
       label: "05 / CONTACT",
       title: "Get in touch.",
       text: "Have a project in mind, an exciting opportunity, or want to connect about software engineering? Send me a direct message.",
-      email: "azamusman@proton.me",
-      copyEmail: "Copy email",
-      copied: "Email copied!",
-      copyError:
-        "Could not copy. Select the address above or open it in your email client.",
+      nameLabel: "Name",
+      emailLabel: "Your email",
+      messageLabel: "Message",
+      namePlaceholder: "What should I call you?",
+      emailPlaceholder: "Where can I reply?",
+      messagePlaceholder: "Tell me a little about your project or idea…",
+      required: "All fields are required.",
+      send: "Send message",
+      sending: "Sending…",
+      sent: "Message accepted for sending. Thank you for getting in touch!",
+      error:
+        "Could not confirm the submission. Your text has been kept; please try again later.",
+      invalid:
+        "Enter your name, a valid email and a message with at least 10 characters.",
+      unavailable:
+        "The contact form is temporarily unavailable. Please try again later.",
+      privacy:
+        "Your name, email and message are sent through FormSubmit so I can reply. Please do not include sensitive information.",
+      privacyLink: "FormSubmit privacy policy",
+      noScript:
+        "Without JavaScript, submission continues on the FormSubmit confirmation page.",
       footer: "© 2026 Azam Usman · All rights reserved.",
       backTop: "Back to top",
     },

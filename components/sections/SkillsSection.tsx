@@ -1,5 +1,7 @@
 "use client";
 
+import { ScrambleText } from "@/components/ui/ScrambleText";
+
 import { Smartphone, Server, Code2, Layers3 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -15,8 +17,12 @@ export function SkillsSection() {
       aria-labelledby="skills-title"
     >
       <div className="skills-heading">
-        <span className="eyebrow">{t.skills.label}</span>
-        <h2 id="skills-title">{t.skills.title}</h2>
+        <span className="eyebrow">
+          <ScrambleText text={t.skills.label} />
+        </span>
+        <h2 id="skills-title">
+          <ScrambleText text={t.skills.title} />
+        </h2>
       </div>
       <div className="skills-list">
         {t.skills.groups.map((group, index) => {

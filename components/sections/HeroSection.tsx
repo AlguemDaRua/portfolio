@@ -1,5 +1,7 @@
 "use client";
 
+import { ScrambleText } from "@/components/ui/ScrambleText";
+
 import { useLanguage } from "@/context/LanguageContext";
 import { ArrowUpRight } from "@/components/ui/Icons";
 
@@ -16,31 +18,37 @@ export function HeroSection() {
       <div className="hero-content">
         <span className="eyebrow hero-eyebrow">
           <i aria-hidden="true" />
-          {t.hero.eyebrow}
+          <ScrambleText text={t.hero.eyebrow} />
         </span>
         <h1 id="hero-title">
-          {t.hero.title}
+          <ScrambleText text={t.hero.title} />
           <br />
-          <span className="hero-title-secondary">{t.hero.titleAccent}</span>
+          <span className="hero-title-secondary">
+            <ScrambleText text={t.hero.titleAccent} />
+          </span>
         </h1>
-        <p className="hero-intro">{t.hero.text}</p>
+        <p className="hero-intro">
+          <ScrambleText text={t.hero.text} />
+        </p>
         <div className="hero-actions">
           <a className="primary-link" href="#work">
-            {t.hero.work}
+            <ScrambleText text={t.hero.work} />
             <ArrowUpRight />
           </a>
           <a className="text-link" href="#about">
-            {t.hero.about}
+            <ScrambleText text={t.hero.about} />
             <span aria-hidden="true">↓</span>
           </a>
           <a className="cv-link" href="#resume">
-            {t.hero.cv}
+            <ScrambleText text={t.hero.cv} />
           </a>
         </div>
       </div>
 
       <div className="hero-bottom">
-        <span>{t.hero.focus}</span>
+        <span>
+          <ScrambleText text={t.hero.focus} />
+        </span>
         <a href="#about" aria-label={t.hero.about}>
           <span aria-hidden="true">↓</span>
         </a>

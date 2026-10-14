@@ -1,0 +1,27 @@
+/* Real translated text reserves the final geometry and remains accessible.
+   Only the decorative glyph layer changes; input fields are never remounted. */
+.scramble-text {
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
+  vertical-align: bottom;
+}
+.scramble-text[data-scrambling="true"] > .scramble-target {
+  opacity: 0;
+}
+.scramble-glyphs {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  user-select: none;
+}
+@media (prefers-reduced-motion: reduce), print {
+  .scramble-text[data-scrambling="true"] > .scramble-target {
+    opacity: 1;
+  }
+  .scramble-glyphs {
+    display: none;
+  }
+}

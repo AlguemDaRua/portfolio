@@ -73,11 +73,52 @@ O visual é editorial e minimalista: títulos com hierarquia clara, uma escala d
 - **Conteúdo:** textos e mensagens de interface em `data/content.ts`, com tipos e paridade PT/EN. As informações dos projetos e os PDFs existentes foram preservados.
 - **Componentes:** `SectionHeading` uniformiza cabeçalhos; as secções mantêm a composição em `PortfolioShell`. Projetos e competências usam listas semânticas.
 - **Estilos:** cores, largura máxima, raios e ritmo vertical em `styles/tokens.css`. Responsividade, acessibilidade e impressão têm responsabilidades separadas; o cabeçalho mobile entra aos 900px.
-- **Acessibilidade:** ligação para saltar para o conteúdo, IDs únicos, títulos associados às secções, foco visível e menu mobile com Escape, foco inicial e fecho ao sair. O scramble fica limitado a rótulos curtos, não é anunciado aos leitores de ecrã e respeita movimento reduzido.
-- **Contacto:** a cópia só anuncia sucesso depois de a API Clipboard confirmar; falhas apresentam uma alternativa e o `mailto:` continua disponível.
+- **Acessibilidade:** ligação para saltar para o conteúdo, IDs únicos, títulos associados às secções, foco visível e menu mobile com Escape, foco inicial e fecho ao sair. A troca PT ↔ EN restaura o scramble nos títulos, descrições e rótulos: os glifos são decorativos, o texto real reserva o espaço e continua acessível. A animação respeita movimento reduzido e cancela frames antigos em trocas rápidas.
+- **Contacto:** formulário bilingue com destinatário identificado por um ID opaco do FormSubmit, sem endereço no HTML/dados públicos. Só confirma aceitação após resposta positiva do serviço; mantém o rascunho em falhas. Os PDFs foram mantidos intactos por decisão do proprietário e continuam a conter e-mails.
 - **Testes:** `tests/ui.test.ts` verifica o HTML renderizado no servidor, navegação, traduções de controlos, destinos reais e contraste dos tokens de texto. Os testes da máscara de tinta continuam independentes.
 
-Antes de publicar, testar PT/EN e claro/escuro entre 320px e desktop, navegação apenas com teclado, menu mobile, cópia de e-mail permitida/negada, PDFs e persistência após recarregar. Uma auditoria automática de acessibilidade não substitui a verificação com leitores de ecrã e dispositivos reais.
+Antes de publicar, testar PT/EN e claro/escuro entre 320px e desktop, navegação apenas com teclado, menu mobile, envio de formulário aceite/rejeitado, PDFs e persistência após recarregar. Uma auditoria automática de acessibilidade não substitui a verificação com leitores de ecrã e dispositivos reais.
+
+## Contacto gratuito, sem destinatário público no formulário
+
+O formulário usa [FormSubmit](https://formsubmit.co/documentation), com o recurso **Invisible emails** e [envio AJAX](https://formsubmit.co/ajax-documentation). O serviço anuncia formulários/envios gratuitos e ilimitados, sem conta obrigatória. Isso não é uma garantia de disponibilidade ou de condições gratuitas para sempre: aplicam-se filtros anti-spam e eventuais limites técnicos do fornecedor.
+
+### Ativação obrigatória (uma vez)
+
+1. Abre o [demo oficial](https://formsubmit.co/live-demo), configura o destinatário **apenas no serviço** e submete uma mensagem de ativação.
+2. Confirma o endereço pelo e-mail enviado pelo FormSubmit. Obtém o identificador aleatório **Invisible emails**, fornecido após confirmação. Não publiques a ligação de ativação nem uses o endereço como ID.
+3. Copia `.env.example` para `.env.local` e preenche **somente o identificador público**:
+   ```dotenv
+   NEXT_PUBLIC_FORMSUBMIT_ID=identificador-recebido-do-formsubmit
+   ```
+   O exemplo acima não é um ID funcional. Usa o valor real fornecido pelo serviço. O prefixo `NEXT_PUBLIC_` é intencional: este identificador é um endpoint público de submissão, não uma chave privada. **Nunca coloques o e-mail ou segredos nessa variável.** Configurações com e-mail/URL são rejeitadas ao iniciar o build/dev.
+4. Reinicia `npm run dev`. Na hospedagem, configura a mesma variável **antes do build** e faz novo deploy: Next incorpora variáveis públicas durante a compilação.
+5. Envia uma mensagem de teste pelo site publicado, confirma a receção na tua caixa e verifica que responder usa o e-mail do visitante.
+
+Sem configuração, o envio fica desativado com uma mensagem explícita — não há sucesso simulado. Não foi enviada nenhuma mensagem real durante o desenvolvimento: os testes interceptam o fornecedor.
+
+### Comportamento e privacidade
+
+- Nome, e-mail do visitante e mensagem; validação de campos, limites de tamanho e honeypot. Nenhuma nova dependência, servidor de correio ou plano pago é necessário para esta integração.
+- Envio na própria página com JavaScript. Sem JavaScript, o formulário configurado usa o POST nativo para a confirmação do FormSubmit.
+- Bloqueia envios repetidos enquanto aguarda resposta e cancela após 15 segundos. Só uma resposta HTTP bem-sucedida com `success: true` (ou `"true"`) mostra aceitação. Aceitação pelo serviço **não certifica entrega na caixa de entrada**; um timeout também não prova que nada foi enviado.
+- O rascunho não é apagado em erros, timeouts ou troca de idioma. Mensagens internas do fornecedor e conteúdo da submissão não são mostrados em logs/UI.
+- Os dados seguem diretamente do browser para FormSubmit por HTTPS, para que o proprietário possa responder. A UI informa esse processamento e liga à política do serviço. A documentação do fornecedor indica um arquivo de submissões de 30 dias. Não usar para dados sensíveis.
+- Um ID público não é um segredo nem uma proteção anti-spam completa. Validação no browser e honeypot são barreiras de conveniência, não autenticação; a filtragem final pertence ao serviço. Não desativamos o CAPTCHA nas opções enviadas, embora o fluxo AJAX tenha as suas próprias limitações.
+- **Limite da privacidade escolhido:** os dois CVs públicos permanecem inalterados, com os contactos originais. Também podem existir cópias do endereço em commits antigos, caches e versões anteriores. Não é uma promessa de anonimato nem de remoção do endereço de toda a internet.
+
+### Testes do formulário e do idioma
+
+`tests/contact.test.ts` valida IDs, campos, payload, respostas e estado sem configuração. `e2e/contact-language.spec.ts` verifica ambos os sentidos do scramble, movimento reduzido, rascunhos, sucesso, rejeição, HTTP 429, falha de rede, resposta não JSON, timeout e honeypot. **Todos os pedidos ao FormSubmit são interceptados**, sem enviar e-mail.
+
+Para exercitar os envios localmente, compila e executa os testes com o mesmo ID fictício:
+
+```bash
+NEXT_PUBLIC_FORMSUBMIT_ID=e2e-contact-fixture-only npm run build
+NEXT_PUBLIC_FORMSUBMIT_ID=e2e-contact-fixture-only npm run test:browser
+```
+
+A CI já define esse ID apenas nos jobs de browser. Sem a variável, os cenários de submissão configurada são assinalados como ignorados; os restantes testes continuam a executar. **Nunca publiques o build com o ID fictício.**
 
 ## Tema claro/escuro
 
@@ -104,7 +145,7 @@ O objetivo é **compatibilidade funcional com melhoria progressiva**, não garan
 | Movimento reduzido ou separador oculto | Mudança de tema sem animação |
 | Máscaras/Canvas indisponíveis, leitura do Canvas bloqueada ou erro de codificação | Mudança direta, sem deixar uma cópia a tapar a página |
 | `localStorage` bloqueado | Tema e idioma funcionam na sessão, sem prometer persistência |
-| Clipboard indisponível/negado | Mensagem de erro; endereço selecionável e ligação `mailto:` continuam disponíveis |
+| Serviço de contacto indisponível ou envio não confirmado | Mensagem de erro; rascunho preservado e nova tentativa possível |
 | Unidades `svh`/`dvh` indisponíveis | Dimensões alternativas em `vh` |
 
 Redimensionar, deslocar a página, ocultar o separador ou ativar movimento reduzido durante o efeito termina a animação no tema solicitado. Cliques sucessivos invalidam callbacks antigos: prevalece a última escolha.

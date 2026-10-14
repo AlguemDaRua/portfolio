@@ -190,7 +190,7 @@ test("the final inverse mask has no opaque pixels left", async ({ page }) => {
   expect(remainingPixels).toBe(0);
 });
 
-test("mobile navigation, translation, PDFs and clipboard failure work across engines", async ({
+test("mobile navigation, translation, PDFs and contact privacy work across engines", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -206,14 +206,11 @@ test("mobile navigation, translation, PDFs and clipboard failure work across eng
   await page.keyboard.press("Escape");
   await expect(menu).toBeFocused();
   await expect(menu).toHaveAttribute("aria-expanded", "false");
-  await page.evaluate(() =>
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText: () => Promise.reject(new Error("Denied")) },
-    }),
-  );
-  await live(page).getByRole("button", { name: "Copy email" }).click();
-  await expect(live(page).getByRole("status")).toContainText("Could not copy");
+  await expect(live(page).locator('a[href^="mailto:"]')).toHaveCount(0);
+  await expect(live(page).locator(".contact-form")).toBeVisible();
+  await expect(
+    live(page).getByLabel("Your email", { exact: true }),
+  ).toHaveAttribute("type", "email");
   for (const path of ["/pdf/CV_AzamUsman_PT.pdf", "/pdf/CV_AzamUsman_EN.pdf"]) {
     expect((await page.request.get(path)).status()).toBe(200);
   }

@@ -1,5 +1,7 @@
 "use client";
 
+import { ScrambleText } from "@/components/ui/ScrambleText";
+
 import { BriefcaseBusiness, BookOpen, MapPin } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -32,12 +34,18 @@ export function ProjectsSection() {
               </div>
               <div className="project-copy">
                 <div className="project-meta">
-                  <span>{project.context}</span>
+                  <span>
+                    <ScrambleText text={project.context} />
+                  </span>
                   <span className="project-year">{project.year}</span>
                 </div>
                 <h3>{project.name}</h3>
-                <p className="project-category">{project.category}</p>
-                <p>{project.description}</p>
+                <p className="project-category">
+                  <ScrambleText text={project.category} />
+                </p>
+                <p>
+                  <ScrambleText text={project.description} />
+                </p>
                 <ul className="project-tags">
                   {project.tags.map((tag) => (
                     <li key={tag}>{tag}</li>
@@ -49,8 +57,12 @@ export function ProjectsSection() {
         })}
       </div>
       <div className="more-work">
-        <span>{t.work.moreLabel}</span>
-        <p>{t.work.moreProjects}</p>
+        <span>
+          <ScrambleText text={t.work.moreLabel} />
+        </span>
+        <p>
+          <ScrambleText text={t.work.moreProjects} />
+        </p>
       </div>
     </section>
   );
