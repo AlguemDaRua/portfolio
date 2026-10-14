@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portfólio de Azam Usman
 
-## Getting Started
+Portfólio pessoal construído com Next.js 16, React e TypeScript. O conteúdo está disponível em português e inglês; os currículos em PDF encontram-se em `public/pdf/`.
 
-First, run the development server:
+## Desenvolvimento
+
+Requer Node.js 20.9 ou superior.
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Verificações
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run type-check
+npm run lint
+npm run test
+npm run build
+# Executa todas as verificações acima
+npm run test:all
+```
 
-## Learn More
+## Estrutura
 
-To learn more about Next.js, take a look at the following resources:
+- `app/` — rotas Next.js, metadados e entrada dos estilos globais.
+- `components/layout/` — composição principal e navegação lateral.
+- `components/sections/` — secções do portfólio.
+- `components/ui/` — controlos e elementos visuais reutilizáveis.
+- `context/` — estado persistente do tema e do idioma.
+- `data/` — conteúdo bilingue e tipos.
+- `lib/theme-paint.ts` — geometria e temporização dos pontos de entrada do tema.
+- `styles/` — tokens, base, navegação, secções, animação, responsividade e acessibilidade.
+- `tests/` — testes de conteúdo, navegação e comportamento/estrutura do tema.
+- `espreitar/` — exemplos de referência; não fazem parte da aplicação principal.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tema claro/escuro
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+A preferência inicial respeita o tema do sistema e é carregada antes da primeira pintura da página. Em navegadores compatíveis, a página conserva o tema atual enquanto uma mancha principal e 32 salpicos de tinta, com posição, forma e escala aleatórias, revelam progressivamente a captura do novo tema. Cada máscara altera de imediato o fundo, o texto e os cartões dentro da sua área, incluindo painéis opacos. Não há camada translúcida nem mudança global antes ou depois da revelação. A dispersão demora cerca de três segundos; com `prefers-reduced-motion` ou sem suporte às máscaras ou às View Transitions, o tema muda imediatamente.

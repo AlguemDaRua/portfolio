@@ -1,67 +1,95 @@
 "use client";
 
-import React, { createContext, useContext, useSyncExternalStore, ReactNode } from "react";
-import { Locale, TranslationContent } from "@/data/types";
+import React, {
+  createContext,
+  useContext,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { portfolioContent } from "@/data/content";
+import type { Locale, TranslationContent } from "@/data/types";
 
-interface LanguageContextType {
+interface LanguageContextValue {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   t: TranslationContent;
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
-
-const STORAGE_KEY = "azam-portfolio-locale";
-
+const LanguageContext = createContext<LanguageContextValue | null>(null);
+const LOCALE_STORAGE_KEY = "azam-portfolio-locale";
 const listeners = new Set<() => void>();
 
-function subscribe(callback: () => void) {
+function readStoredLocale(): Locale | null {
+  try {
+    const storedLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    return storedLocale === "pt" || storedLocale === "en" ? storedLocale : null;
+  } catch {
+    return null;
+  }
+}
+
+function getLocaleSnapshot(): Locale {
+  const storedLocale = readStoredLocale();
+  if (storedLocale) return storedLocale;
+
+  return document.documentElement.lang === "en" ? "en" : "pt";
+}
+
+function getServerLocaleSnapshot(): Locale {
+  return "pt";
+}
+
+function subscribeLocale(callback: () => void) {
   listeners.add(callback);
-  window.addEventListener("storage", callback);
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== LOCALE_STORAGE_KEY && event.key !== null) return;
+
+    document.documentElement.lang = readStoredLocale() ?? "pt";
+    callback();
+  };
+
+  window.addEventListener("storage", handleStorage);
+
   return () => {
     listeners.delete(callback);
-    window.removeEventListener("storage", callback);
+    window.removeEventListener("storage", handleStorage);
   };
 }
 
-function getSnapshot(): Locale {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY) as Locale | null;
-    if (saved === "pt" || saved === "en") return saved;
-  } catch {
-    // Ignore
-  }
-  return "pt";
-}
-
-function getServerSnapshot(): Locale {
-  return "pt";
+function notifyLocaleListeners() {
+  listeners.forEach((listener) => listener());
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const locale = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const locale = useSyncExternalStore(
+    subscribeLocale,
+    getLocaleSnapshot,
+    getServerLocaleSnapshot,
+  );
 
-  const setLocale = (newLocale: Locale) => {
+  const setLocale = (nextLocale: Locale) => {
+    document.documentElement.lang = nextLocale;
+
     try {
-      localStorage.setItem(STORAGE_KEY, newLocale);
-      document.documentElement.lang = newLocale;
-      listeners.forEach((listener) => listener());
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
     } catch {
-      // Ignore
+      // Keep the in-memory language working when storage is unavailable.
     }
+
+    notifyLocaleListeners();
   };
 
-  const t = portfolioContent[locale];
-
   return (
-    <LanguageContext.Provider value={{ locale, setLocale, t }}>
+    <LanguageContext.Provider
+      value={{ locale, setLocale, t: portfolioContent[locale] }}
+    >
       {children}
     </LanguageContext.Provider>
   );
 }
 
-export function useLanguage(): LanguageContextType {
+export function useLanguage(): LanguageContextValue {
   const context = useContext(LanguageContext);
   if (!context) {
     throw new Error("useLanguage must be used within a LanguageProvider");
