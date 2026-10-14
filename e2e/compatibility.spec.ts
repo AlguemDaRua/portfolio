@@ -190,7 +190,7 @@ test("the final inverse mask has no opaque pixels left", async ({ page }) => {
   expect(remainingPixels).toBe(0);
 });
 
-test("mobile navigation, translation, PDFs and contact privacy work across engines", async ({
+test("mobile navigation, translation, PDFs and clean contact UI work across engines", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -208,6 +208,9 @@ test("mobile navigation, translation, PDFs and contact privacy work across engin
   await expect(menu).toHaveAttribute("aria-expanded", "false");
   await expect(live(page).locator('a[href^="mailto:"]')).toHaveCount(0);
   await expect(live(page).locator(".contact-form")).toBeVisible();
+  expect(await live(page).locator("#contact").innerText()).not.toContain(
+    "azamusman67@gmail.com",
+  );
   await expect(
     live(page).getByLabel("Your email", { exact: true }),
   ).toHaveAttribute("type", "email");

@@ -469,7 +469,7 @@
   background: var(--active-bg);
 }
 
-/* Contact: a private-recipient form, without a public email address. */
+/* Contact: a simple form instead of a visible email address. */
 .contact-section {
   border-block: 1px solid var(--line);
   background: var(--soft);

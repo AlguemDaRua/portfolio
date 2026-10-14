@@ -103,7 +103,7 @@ test("Contact Information Integrity", () => {
     const contact = portfolioContent[locale].contact;
     assert.ok(
       !("email" in contact),
-      "Recipient must not be in public translations",
+      "Recipient must not be part of the visible translated copy",
     );
     assert.doesNotMatch(JSON.stringify(contact), /mailto:|[^\s]+@[^\s]+/);
     assert.ok(contact.title.length > 0, "Contact title must not be empty");
@@ -116,7 +116,6 @@ test("Contact Information Integrity", () => {
       "sent",
       "error",
       "invalid",
-      "unavailable",
       "privacy",
     ] as const) {
       assert.ok(

@@ -52,13 +52,14 @@ test("The mobile menu declares its state and controlled navigation", () => {
   }
 });
 
-test("Projects and PDFs retain real targets; contact does not expose a recipient", () => {
+test("Projects and PDFs retain real targets; contact shows a form instead of an email address", () => {
   assert.equal(
     (html.match(/class="project-row"/g) ?? []).length,
     portfolioContent.pt.projects.length,
   );
   assert.doesNotMatch(html, /href="#"|href="javascript:/);
   assert.doesNotMatch(html, /mailto:|proton\.me/);
+  assert.ok(!html.replace(/<[^>]*>/g, "").includes("azamusman67@gmail.com"));
   assert.match(html, /<form[^>]*class="contact-form"/);
   for (const field of ["name", "email", "message"]) {
     assert.match(html, new RegExp(`for="contact-${field}"`));

@@ -13,15 +13,11 @@ import {
 
 type FormState = "idle" | "sending" | "sent" | "error" | "invalid";
 
-export function ContactForm({
-  formId = process.env.NEXT_PUBLIC_FORMSUBMIT_ID,
-}: {
-  formId?: string;
-}) {
+export function ContactForm() {
   const { t } = useLanguage();
   const [state, setState] = useState<FormState>("idle");
   const request = useRef<AbortController | null>(null);
-  const endpoint = getContactEndpoint(formId);
+  const endpoint = getContactEndpoint();
   const pending = state === "sending";
 
   useEffect(
@@ -34,7 +30,7 @@ export function ContactForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!endpoint || request.current) return;
+    if (request.current) return;
     const form = event.currentTarget;
     const data = new FormData(form);
     const message = {
@@ -85,7 +81,7 @@ export function ContactForm({
       aria-label={t.contact.title}
       aria-describedby="contact-required contact-privacy"
       aria-busy={pending}
-      action={endpoint?.replace("/ajax/", "/")}
+      action={endpoint.replace("/ajax/", "/")}
       method="post"
       onSubmit={submit}
       onChange={() =>
@@ -152,11 +148,7 @@ export function ContactForm({
             autoComplete="off"
           />
         </div>
-        <button
-          type="submit"
-          className="contact-submit"
-          disabled={!endpoint || pending}
-        >
+        <button type="submit" className="contact-submit" disabled={pending}>
           <span>{pending ? t.contact.sending : t.contact.send}</span>
           <ArrowUpRight />
         </button>
@@ -171,7 +163,6 @@ export function ContactForm({
           {t.contact.privacyLink} ↗
         </a>
       </p>
-      {!endpoint && <p className="contact-feedback">{t.contact.unavailable}</p>}
       <p
         className="contact-feedback"
         role="status"

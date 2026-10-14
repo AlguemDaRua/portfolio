@@ -195,11 +195,9 @@ export const portfolioContent: ContentDictionary = {
         "Não foi possível confirmar o envio. O teu texto foi mantido; tenta novamente mais tarde.",
       invalid:
         "Preenche o nome, um e-mail válido e uma mensagem com pelo menos 10 caracteres.",
-      unavailable:
-        "O formulário está temporariamente indisponível. Tenta novamente mais tarde.",
       privacy:
-        "O teu nome, e-mail e mensagem são enviados através do FormSubmit para que eu possa responder. Não incluas informações sensíveis.",
-      privacyLink: "Privacidade do FormSubmit",
+        "Os teus dados são enviados através do FormSubmit para que eu possa responder.",
+      privacyLink: "Privacidade",
       noScript:
         "Sem JavaScript, o envio continua na página de confirmação do FormSubmit.",
       footer: "© 2026 Azam Usman · Todos os direitos reservados.",
@@ -394,11 +392,8 @@ export const portfolioContent: ContentDictionary = {
         "Could not confirm the submission. Your text has been kept; please try again later.",
       invalid:
         "Enter your name, a valid email and a message with at least 10 characters.",
-      unavailable:
-        "The contact form is temporarily unavailable. Please try again later.",
-      privacy:
-        "Your name, email and message are sent through FormSubmit so I can reply. Please do not include sensitive information.",
-      privacyLink: "FormSubmit privacy policy",
+      privacy: "Your details are sent through FormSubmit so I can reply.",
+      privacyLink: "Privacy",
       noScript:
         "Without JavaScript, submission continues on the FormSubmit confirmation page.",
       footer: "© 2026 Azam Usman · All rights reserved.",

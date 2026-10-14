@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ContactForm } from "../components/ui/ContactForm";
 import { LanguageProvider } from "../context/LanguageContext";
 import {
+  CONTACT_EMAIL,
   contactPayload,
   getContactEndpoint,
   isContactAccepted,
@@ -18,21 +19,11 @@ const message = {
   website: "",
 };
 
-test("Only opaque public FormSubmit identifiers become endpoints", () => {
-  for (const id of [
-    undefined,
-    "",
-    "visitor@example.org",
-    "https://example.org",
-    "../redirect",
-    "short",
-    "a".repeat(129),
-  ]) {
-    assert.equal(getContactEndpoint(id), null);
-  }
+test("The contact form sends to the requested Gmail inbox without extra configuration", () => {
+  assert.equal(CONTACT_EMAIL, "azamusman67@gmail.com");
   assert.equal(
-    getContactEndpoint(" e2e-contact-fixture-only "),
-    "https://formsubmit.co/ajax/e2e-contact-fixture-only",
+    getContactEndpoint(),
+    "https://formsubmit.co/ajax/azamusman67@gmail.com",
   );
 });
 
@@ -80,23 +71,12 @@ test("Acceptance requires an explicit successful provider response", () => {
     assert.equal(isContactAccepted(response), false);
 });
 
-test("An unconfigured form is explicitly disabled; a configured form has an opaque native fallback", () => {
-  const render = (formId: string) =>
-    renderToStaticMarkup(
-      createElement(
-        LanguageProvider,
-        null,
-        createElement(ContactForm, { formId }),
-      ),
-    );
-  const missing = render("");
-  assert.match(missing, /type="submit"[^>]*disabled/);
-  assert.match(missing, /temporariamente indisponível/);
-  const configured = render("e2e-contact-fixture-only");
-  assert.match(
-    configured,
-    /action="https:\/\/formsubmit.co\/e2e-contact-fixture-only"/,
+test("The form is enabled and targets Gmail without rendering a visible address or mailto link", () => {
+  const html = renderToStaticMarkup(
+    createElement(LanguageProvider, null, createElement(ContactForm)),
   );
-  assert.doesNotMatch(configured, /type="submit"[^>]*disabled/);
-  assert.doesNotMatch(configured, /mailto:|proton\.me/);
+  assert.match(html, /action="https:\/\/formsubmit.co\/azamusman67@gmail.com"/);
+  assert.doesNotMatch(html, /type="submit"[^>]*disabled/);
+  assert.doesNotMatch(html, /mailto:|proton\.me/);
+  assert.ok(!html.replace(/<[^>]*>/g, "").includes(CONTACT_EMAIL));
 });

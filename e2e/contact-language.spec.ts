@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { portfolioContent } from "../data/content";
+import { CONTACT_EMAIL, getContactEndpoint } from "../lib/contact";
 
 const service = "https://formsubmit.co/**";
 const form = (page: Page) =>
@@ -106,14 +107,7 @@ test("rapid language changes keep the latest text, preserve drafts and respect r
   ).toBe(true);
 });
 
-test.describe("configured contact form (mocked provider, no mail sent)", () => {
-  test.beforeEach(() => {
-    test.skip(
-      !process.env.NEXT_PUBLIC_FORMSUBMIT_ID,
-      "Build with NEXT_PUBLIC_FORMSUBMIT_ID=e2e-contact-fixture-only to exercise submissions.",
-    );
-  });
-
+test.describe("contact form (mocked provider, no mail sent)", () => {
   test("validates fields, prevents duplicate sends and confirms success only after acceptance", async ({
     page,
   }) => {
@@ -134,7 +128,7 @@ test.describe("configured contact form (mocked provider, no mail sent)", () => {
         "message",
         "name",
       ]);
-      expect(route.request().url()).not.toContain("@");
+      expect(route.request().url()).toBe(getContactEndpoint());
       await accepted;
       await route.fulfill({ json: { success: "true" } });
     });
@@ -163,7 +157,7 @@ test.describe("configured contact form (mocked provider, no mail sent)", () => {
     expect(requests).toBe(1);
   });
 
-  test("without JavaScript, the native form posts only to the opaque provider URL", async ({
+  test("without JavaScript, the native form posts to the same Gmail destination", async ({
     browser,
     baseURL,
   }) => {
@@ -186,10 +180,7 @@ test.describe("configured contact form (mocked provider, no mail sent)", () => {
       await fillContact(page);
       await form(page).getByRole("button", { name: "Enviar mensagem" }).click();
       await expect(page.getByText("Mock provider confirmation")).toBeVisible();
-      expect(recipientUrl).toMatch(
-        /^https:\/\/formsubmit\.co\/[a-zA-Z0-9_-]+$/,
-      );
-      expect(recipientUrl).not.toContain("@");
+      expect(recipientUrl).toBe(`https://formsubmit.co/${CONTACT_EMAIL}`);
     } finally {
       await context.close();
     }

@@ -7,13 +7,12 @@ export interface ContactMessage {
   website: string;
 }
 
-// This is FormSubmit's PUBLIC "invisible email" identifier, never an address
-// or a private API key. Reject addresses/URLs even if misconfigured at build time.
-export function getContactEndpoint(id: string | undefined): string | null {
-  const value = id?.trim();
-  return value && /^[a-zA-Z0-9_-]{16,128}$/.test(value)
-    ? `https://formsubmit.co/ajax/${value}`
-    : null;
+// The form keeps the page visually clean; this public delivery address is not
+// intended to be secret. Change it here without touching the translated UI.
+export const CONTACT_EMAIL = "azamusman67@gmail.com";
+
+export function getContactEndpoint(): string {
+  return `https://formsubmit.co/ajax/${CONTACT_EMAIL}`;
 }
 
 export function isValidContactMessage(value: ContactMessage): boolean {

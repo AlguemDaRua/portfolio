@@ -108,7 +108,6 @@ export interface TranslationContent {
     sent: string;
     error: string;
     invalid: string;
-    unavailable: string;
     privacy: string;
     privacyLink: string;
     noScript: string;
