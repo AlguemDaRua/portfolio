@@ -4,7 +4,7 @@ Portfólio pessoal construído com Next.js 16, React e TypeScript. O conteúdo e
 
 ## Desenvolvimento
 
-Requer **Node.js 26** e **npm 12.2+ (major 12)**. A versão testada de Node está em `.nvmrc` (26.11.1); `packageManager` fixa npm 12.2.0. Os tipos de Node acompanham o runtime 26. São versões estáveis atuais, não versões beta/canary.
+Requer **Node.js 24+** (testado em **Node.js 26** localmente e na CI com `.nvmrc` em 26.11.1; compatível com **Node.js 24 LTS** na Vercel) e **npm 11+** (com `packageManager` a fixar npm 12.2.0). Os tipos de Node acompanham o runtime 26. São versões estáveis atuais, não versões beta/canary.
 
 Se usas nvm, prepara o ambiente antes de instalar as dependências:
 
