@@ -6,7 +6,6 @@ import { useLanguage } from "@/context/LanguageContext";
 import {
   CONTACT_HONEYPOT,
   CONTACT_LIMITS,
-  CONTACT_SUBJECTS,
   validateContact,
   type ContactErrors,
   type ContactField,
@@ -248,27 +247,22 @@ export function ContactForm() {
         <label className="contact-label" htmlFor={id("subject")}>
           {copy.subject}
         </label>
-        <select
+        <input
           id={id("subject")}
           name="subject"
-          className="contact-input contact-select"
+          className="contact-input"
+          type="text"
           value={values.subject}
           onChange={(event) => update("subject", event.target.value)}
+          placeholder={copy.subjectPlaceholder}
+          autoComplete="off"
+          maxLength={CONTACT_LIMITS.subject.max}
           required
           aria-invalid={Boolean(errors.subject)}
           aria-describedby={
             errors.subject ? `${id("subject")}-error` : undefined
           }
-        >
-          <option value="" disabled>
-            {copy.subjectPlaceholder}
-          </option>
-          {CONTACT_SUBJECTS.map((subject) => (
-            <option key={subject} value={subject}>
-              {copy.subjects[subject]}
-            </option>
-          ))}
-        </select>
+        />
         {errors.subject ? (
           <span className="contact-error" id={`${id("subject")}-error`}>
             {fieldError("subject")}

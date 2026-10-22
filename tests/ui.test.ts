@@ -135,11 +135,7 @@ test("Contact is a form, and no address is printed anywhere in the page", () => 
     "Every field is bound to a label",
   );
 
-  for (const locale of ["pt", "en"] as const) {
-    for (const option of Object.values(
-      portfolioContent[locale].contact.form.subjects,
-    )) {
-      assert.ok(option.trim().length > 0);
-    }
-  }
+  // The subject is typed, never chosen from a menu we wrote for the visitor.
+  assert.doesNotMatch(html, /<select[^>]*name="subject"/);
+  assert.match(html, /<input[^>]*name="subject"/);
 });

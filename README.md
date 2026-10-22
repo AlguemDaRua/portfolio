@@ -101,6 +101,7 @@ Não há endereço em lado nenhum da página — nem no HTML, nem no bundle, nem
 
 Sem nenhuma variável definida a rota responde `503` e o formulário diz que o envio não está disponível — nunca finge que enviou. As variáveis estão documentadas em `.env.example` e configuram-se no Vercel em **Project → Settings → Environment Variables**.
 
+- **Assunto:** escrito por quem envia, não escolhido de uma lista nossa — 2 a 120 caracteres. Na entrega é limpo de quebras de linha e cortado a 78, porque um assunto é um cabeçalho e não um parágrafo.
 - **Estados:** erro por campo com `aria-invalid` e `aria-describedby`, foco no primeiro campo inválido, botão em `aria-busy` enquanto envia, falha de rede distinguida de falha do fornecedor, e um painel de sucesso que permite enviar outra mensagem.
 - **Testes:** `tests/verify.test.ts` cobre a verificação do domínio (MX, recurso ao `A`, NXDOMAIN, DNS em baixo), as gralhas sugeridas e as três APIs, tudo com `fetch` injectado; `tests/contact.test.ts` cobre a validação campo a campo, a detecção de bots e as duas entregas (com `fetch` injectado, sem rede); `e2e/contact.spec.ts` cobre o formulário real, os estados de erro, o sucesso, a falha do fornecedor, a rede em baixo e a própria rota (422, 503, 202).
 

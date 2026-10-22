@@ -4,19 +4,10 @@
  * so a new language never has to touch this file.
  */
 
-export const CONTACT_SUBJECTS = ["project", "role", "other"] as const;
-export type ContactSubject = (typeof CONTACT_SUBJECTS)[number];
-
-/** English labels for the inbox; the form shows words per locale. */
-export const CONTACT_SUBJECT_LABELS: Record<ContactSubject, string> = {
-  project: "Project",
-  role: "Role / collaboration",
-  other: "Other",
-};
-
 export const CONTACT_LIMITS = {
   name: { min: 2, max: 80 },
   email: { max: 254 },
+  subject: { min: 2, max: 120 },
   message: { min: 20, max: 2000 },
 } as const;
 
@@ -40,7 +31,8 @@ export type ContactErrors = Partial<Record<ContactField, ContactErrorCode>>;
 export type ContactMessage = {
   name: string;
   email: string;
-  subject: ContactSubject;
+  /** Whatever the visitor wants to call it; never a list we impose. */
+  subject: string;
   message: string;
 };
 
@@ -48,9 +40,6 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const readText = (value: unknown): string =>
   typeof value === "string" ? value.trim() : "";
-
-const isSubject = (value: string): value is ContactSubject =>
-  (CONTACT_SUBJECTS as readonly string[]).includes(value);
 
 type ValidationResult =
   | { ok: true; value: ContactMessage }
@@ -75,7 +64,11 @@ export function validateContact(input: unknown): ValidationResult {
   )
     errors.email = "email";
 
-  if (!isSubject(subject)) errors.subject = "required";
+  if (!subject) errors.subject = "required";
+  else if (subject.length < CONTACT_LIMITS.subject.min)
+    errors.subject = "short";
+  else if (subject.length > CONTACT_LIMITS.subject.max)
+    errors.subject = "long";
 
   if (!message) errors.message = "required";
   else if (message.length < CONTACT_LIMITS.message.min)
@@ -86,7 +79,7 @@ export function validateContact(input: unknown): ValidationResult {
   if (Object.keys(errors).length > 0) return { ok: false, errors };
   return {
     ok: true,
-    value: { name, email, subject: subject as ContactSubject, message },
+    value: { name, email, subject, message },
   };
 }
 
@@ -106,7 +99,7 @@ export function formatContactText(message: ContactMessage): string {
   return [
     `Name:    ${message.name}`,
     `Email:   ${message.email}`,
-    `Subject: ${CONTACT_SUBJECT_LABELS[message.subject]}`,
+    `Subject: ${message.subject}`,
     "",
     message.message,
   ].join("\n");

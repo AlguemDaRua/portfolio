@@ -5,7 +5,7 @@ const form = (page: Page) => page.locator(".contact-form");
 const fill = async (page: Page) => {
   await page.locator('[name="name"]').fill("Azam");
   await page.locator('[name="email"]').fill("hello@example.com");
-  await page.locator('[name="subject"]').selectOption("project");
+  await page.locator('[name="subject"]').fill("Novo produto");
   await page
     .locator('[name="message"]')
     .fill("I would like to talk about a new product I am building.");
@@ -63,7 +63,7 @@ test("a complete message sends, thanks the sender and can be repeated", async ({
 
   await expect(page.locator(".contact-sent")).toContainText("Message sent.");
   expect(payload.name).toBe("Azam");
-  expect(payload.subject).toBe("project");
+  expect(payload.subject).toBe("Novo produto");
   expect(payload.message).toContain("new product");
   expect(Number(payload.elapsed)).toBeGreaterThan(0);
   expect(payload.company).toBe("");
@@ -158,7 +158,7 @@ test("the route never accepts an address nobody could answer", async ({
 }) => {
   const base = {
     name: "Azam",
-    subject: "project",
+    subject: "Novo produto",
     message: "A proper message with more than twenty characters in it.",
     elapsed: 9000,
   };
@@ -189,7 +189,7 @@ test("the route itself validates, refuses and ignores bots", async ({
   const message = {
     name: "Azam",
     email: "hello@example.com",
-    subject: "project",
+    subject: "Novo produto",
     message: "A proper message with more than twenty characters in it.",
     elapsed: 9000,
   };

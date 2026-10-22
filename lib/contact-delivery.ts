@@ -1,8 +1,4 @@
-import {
-  CONTACT_SUBJECT_LABELS,
-  formatContactText,
-  type ContactMessage,
-} from "./contact";
+import { formatContactText, type ContactMessage } from "./contact";
 
 /**
  * Delivery is a pure function of the message plus the environment. Nothing is
@@ -24,6 +20,13 @@ type DeliveryResult = "resend" | "webhook" | "unconfigured";
 
 export class DeliveryError extends Error {}
 
+/**
+ * A subject line is a header, not a paragraph: a newline there is header
+ * injection, and a very long subject is a very rude inbox.
+ */
+export const headerSafe = (text: string, max = 78): string =>
+  text.replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+
 export async function deliverContact(
   message: ContactMessage,
   env: ContactEnv,
@@ -41,7 +44,7 @@ export async function deliverContact(
       body: JSON.stringify({
         from: env.from ?? "Portfolio <onboarding@resend.dev>",
         to: [env.to],
-        subject: `[Portfolio] ${CONTACT_SUBJECT_LABELS[message.subject]} — ${message.name}`,
+        subject: `[Portfolio] ${headerSafe(message.subject)} — ${headerSafe(message.name)}`,
         reply_to: message.email,
         text,
       }),

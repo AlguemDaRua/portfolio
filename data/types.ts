@@ -113,7 +113,6 @@ export type ContactFormCopy = {
   emailPlaceholder: string;
   subject: string;
   subjectPlaceholder: string;
-  subjects: Record<"project" | "role" | "other", string>;
   message: string;
   messagePlaceholder: string;
   submit: string;

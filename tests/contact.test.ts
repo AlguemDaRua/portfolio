@@ -7,12 +7,16 @@ import {
   looksAutomated,
   validateContact,
 } from "../lib/contact";
-import { DeliveryError, deliverContact } from "../lib/contact-delivery";
+import {
+  DeliveryError,
+  deliverContact,
+  headerSafe,
+} from "../lib/contact-delivery";
 
 const valid = {
   name: "  Azam Usman ",
   email: " hello@example.com ",
-  subject: "project",
+  subject: "  Novo produto para a equipa  ",
   message: "  I would like to talk about a new product I am building.  ",
 };
 
@@ -23,7 +27,7 @@ test("A complete message passes and comes back trimmed", () => {
   assert.deepEqual(result.value, {
     name: "Azam Usman",
     email: "hello@example.com",
-    subject: "project",
+    subject: "Novo produto para a equipa",
     message: "I would like to talk about a new product I am building.",
   });
 });
@@ -49,7 +53,9 @@ test("The shape of each field is checked on its own", () => {
     [{ message: "too short" }, "short"],
     [{ name: "x".repeat(81) }, "long"],
     [{ message: "x".repeat(2001) }, "long"],
-    [{ subject: "budget" }, "required"],
+    [{ subject: "" }, "required"],
+    [{ subject: "x" }, "short"],
+    [{ subject: "x".repeat(121) }, "long"],
   ];
 
   for (const [patch, code] of cases) {
@@ -77,12 +83,12 @@ test("The plain-text body carries every field, ready for any inbox", () => {
   const body = formatContactText({
     name: "Azam",
     email: "hello@example.com",
-    subject: "role",
+    subject: "Pedido de colaboração",
     message: "Line one.\nLine two.",
   });
   assert.match(body, /Name:\s+Azam/);
   assert.match(body, /Email:\s+hello@example\.com/);
-  assert.match(body, /Subject:\s+Role \/ collaboration/);
+  assert.match(body, /Subject:\s+Pedido de colaboração/);
   assert.match(body, /Line one\.\nLine two\./);
 });
 
@@ -102,7 +108,7 @@ test("A webhook receives the message as JSON", async () => {
     {
       name: "Azam",
       email: "hello@example.com",
-      subject: "other",
+      subject: "Uma ideia solta",
       message: "Hello there, this is a message.",
     },
     { webhook: "https://hooks.example.test/incoming" },
@@ -125,7 +131,7 @@ test("Resend gets the key, the reply address and the text", async () => {
     {
       name: "Azam",
       email: "hello@example.com",
-      subject: "project",
+      subject: "Proposta de projecto",
       message: "Hello there, this is a message.",
     },
     { resendKey: "re_test", to: "owner@example.com", from: "Site <site@example.com>" },
@@ -142,7 +148,14 @@ test("Resend gets the key, the reply address and the text", async () => {
   assert.deepEqual(payload.to, ["owner@example.com"]);
   assert.equal(payload.from, "Site <site@example.com>");
   assert.equal(payload.reply_to, "hello@example.com");
-  assert.match(payload.subject, /Project/);
+  assert.match(payload.subject, /Proposta de projecto/);
+});
+
+test("A subject line is made safe before it reaches a header", () => {
+  assert.equal(headerSafe("Hello\r\nBcc: evil@example.com"), "Hello Bcc: evil@example.com");
+  assert.equal(headerSafe("  too\t\tmany   spaces  "), "too many spaces");
+  assert.equal(headerSafe("x".repeat(200)).length, 78);
+  assert.equal(headerSafe("Assunto normal"), "Assunto normal");
 });
 
 test("A provider that answers with an error is a delivery failure", async () => {
@@ -151,7 +164,7 @@ test("A provider that answers with an error is a delivery failure", async () => 
       {
         name: "Azam",
         email: "hello@example.com",
-        subject: "role",
+        subject: "Colaboração",
         message: "Hello there, this is a message.",
       },
       { resendKey: "re_test", to: "owner@example.com" },

@@ -913,21 +913,6 @@ textarea.contact-input {
   resize: none;
 }
 
-.contact-select {
-  appearance: none;
-  padding-right: 38px;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='rgba(255,255,255,0.55)' stroke-width='1.5'><path d='M1 1.5 6 6.5 11 1.5'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 16px center;
-  background-size: 11px;
-}
-
-.contact-select option {
-  color: #15161a;
-  background: #fbfbf7;
-}
-
 .contact-error {
   color: #ffb0a0;
   font-size: 11.5px;
