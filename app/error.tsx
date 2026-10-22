@@ -24,11 +24,11 @@ export default function ErrorBoundary({
       <span className="eyebrow">Erro · Error</span>
       <h1 className="status-title">Algo falhou. Something broke.</h1>
       <p className="status-text">
-        A página não carregou como devia. Tenta outra vez ou escreve para{" "}
-        <a className="status-link" href="mailto:azamusman@proton.me">
-          azamusman@proton.me
-        </a>
-        . The page did not load as expected — try again or send an email.
+        A página não carregou como devia. Tenta outra vez ou usa o{" "}
+        <Link className="status-link" href="/#contact">
+          formulário de contacto
+        </Link>
+        . The page did not load as expected — try again or use the contact form.
       </p>
       <div className="status-actions">
         <button type="button" className="btn-primary" onClick={reset}>

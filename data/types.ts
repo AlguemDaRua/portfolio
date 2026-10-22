@@ -99,13 +99,40 @@ export interface TranslationContent {
     label: string;
     title: string;
     text: string;
-    email: string;
-    copyEmail: string;
-    copied: string;
-    copyError: string;
     availability: string;
     footer: string;
     backTop: string;
+    form: ContactFormCopy;
+  };
+}
+
+export type ContactFormCopy = {
+  name: string;
+  namePlaceholder: string;
+  email: string;
+  emailPlaceholder: string;
+  subject: string;
+  subjectPlaceholder: string;
+  subjects: Record<"project" | "role" | "other", string>;
+  message: string;
+  messagePlaceholder: string;
+  submit: string;
+  sending: string;
+  successTitle: string;
+  successText: string;
+  again: string;
+  privacy: string;
+  errorSummary: string;
+  errors: {
+    required: string;
+    email: string;
+    short: string;
+    long: string;
+    rate: string;
+    unavailable: string;
+    delivery: string;
+    network: string;
+    invalid: string;
   };
 }
 

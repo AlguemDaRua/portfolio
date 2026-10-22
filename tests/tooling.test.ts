@@ -113,6 +113,6 @@ test("Every route has a fallback that still looks like the portfolio", () => {
   for (const route of ["error", "global-error", "not-found"]) {
     const source = readFileSync(join(root, `app/${route}.tsx`), "utf8");
     assert.match(source, /status-page|style=/, `${route} renders a real page`);
-    assert.match(source, /mailto:|Voltar|Try again/, `${route} helps the visitor`);
+    assert.match(source, /\/#contact/, `${route} points at the form`);
   }
 });

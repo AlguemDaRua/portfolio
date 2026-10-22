@@ -19,6 +19,9 @@ export default function NotFound() {
         <Link className="btn-primary" href="/">
           Voltar ao início · Back home
         </Link>
+        <Link className="btn-ghost" href="/#contact">
+          Falar comigo · Get in touch
+        </Link>
       </div>
     </main>
   );

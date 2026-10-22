@@ -45,21 +45,20 @@ test("The mobile menu declares its state and controlled navigation", () => {
       nav.close,
       nav.skip,
       nav.label,
-      contact.copyError,
+      contact.form.errorSummary,
+      ...Object.values(contact.form.errors),
     ]) {
       assert.ok(label.trim().length > 0);
     }
   }
 });
 
-test("Projects remain honest non-link entries and the email/PDF actions have real targets", () => {
+test("Projects remain honest non-link entries and the PDF actions have real targets", () => {
   assert.equal(
     (html.match(/class="project-row"/g) ?? []).length,
     portfolioContent.pt.projects.length,
   );
   assert.doesNotMatch(html, /href="#"|href="javascript:/);
-  assert.match(html, /href="mailto:azamusman@proton.me"/);
-  assert.match(html, /role="status" aria-live="polite"/);
   for (const item of portfolioContent.pt.cv.items) {
     assert.ok(html.includes(`href="${item.filePath}"`));
     assert.ok(fs.existsSync(path.join(__dirname, "../public", item.filePath)));
@@ -114,6 +113,33 @@ test("Small-text theme tokens maintain WCAG AA contrast on their surfaces", () =
         contrast >= 4.5,
         `${index === 0 ? "Light" : "Dark"}: ${foreground} on ${background} = ${contrast.toFixed(2)}:1`,
       );
+    }
+  }
+});
+
+test("Contact is a form, and no address is printed anywhere in the page", () => {
+  // Nothing to copy, nothing to harvest: the address never reaches the browser.
+  assert.doesNotMatch(html, /mailto:/i);
+  assert.doesNotMatch(html, /@proton\.me/i);
+
+  assert.match(html, /<form[^>]*class="contact-form"/);
+  for (const field of ["name", "email", "subject", "message"]) {
+    assert.match(html, new RegExp(`name="${field}"`), `Missing ${field} field`);
+  }
+  assert.match(html, /type="submit"/);
+
+  // Every visible field is announced by a label.
+  assert.equal(
+    (html.match(/<label[^>]*for="/g) ?? []).length,
+    (html.match(/<(input|select|textarea)\b[^>]*\bid="/g) ?? []).length,
+    "Every field is bound to a label",
+  );
+
+  for (const locale of ["pt", "en"] as const) {
+    for (const option of Object.values(
+      portfolioContent[locale].contact.form.subjects,
+    )) {
+      assert.ok(option.trim().length > 0);
     }
   }
 });

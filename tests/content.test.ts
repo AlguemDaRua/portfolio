@@ -65,9 +65,23 @@ test("Curriculum Vitae (CV) Configuration and Files on Disk", () => {
 
 test("Contact Information Integrity", () => {
   for (const locale of ["pt", "en"] as const) {
-    const contact = portfolioContent[locale].contact;
-    assert.match(contact.email, /^.+@.+\..+$/, "Contact email must be a valid email format");
-    assert.ok(contact.title.length > 0, "Contact title must not be empty");
-    assert.ok(contact.copyEmail.length > 0, "Copy email label must not be empty");
+    const { contact } = portfolioContent[locale];
+    assert.ok(contact.title.trim().length > 0, "Contact title must not be empty");
+    assert.ok(contact.text.trim().length > 0, "Contact text must not be empty");
+    assert.ok(contact.form.submit.trim().length > 0);
+
+    for (const [field, label] of Object.entries({
+      name: contact.form.name,
+      email: contact.form.email,
+      subject: contact.form.subject,
+      message: contact.form.message,
+    })) {
+      assert.ok(label.trim().length > 0, `${field} needs a label`);
+    }
+    for (const [code, message] of Object.entries(contact.form.errors)) {
+      assert.ok(message.trim().length > 0, `Missing error copy for ${code}`);
+    }
+    // The address never travels with the copy: the form is the only door.
+    assert.doesNotMatch(JSON.stringify(contact), /@proton\.me/i);
   }
 });

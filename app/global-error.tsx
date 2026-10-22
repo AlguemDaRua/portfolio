@@ -52,13 +52,13 @@ export default function GlobalError({
             Algo falhou. Something broke.
           </h1>
           <p style={{ margin: "16px 0 0", lineHeight: 1.7, color: "#43464e" }}>
-            Recarrega a página ou escreve para{" "}
-            <a href="mailto:azamusman@proton.me" style={{ color: "inherit" }}>
-              azamusman@proton.me
-            </a>
+            Recarrega a página ou usa o{" "}
+            <Link href="/#contact" style={{ color: "inherit" }}>
+              formulário de contacto
+            </Link>
             .{" "}
-            {error.digest ? `(${error.digest})` : ""} Reload the page or send an
-            email.
+            {error.digest ? `(${error.digest})` : ""} Reload the page or use the
+            contact form.
           </p>
           <div style={{ display: "flex", gap: 10, marginTop: 26 }}>
             <button

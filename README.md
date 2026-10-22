@@ -42,7 +42,7 @@ npm run test:all
 - **Instalação reproduzível:** usa `npm ci` e mantém `package-lock.json` versionado. `.npmrc` rejeita runtimes incompatíveis e scripts de instalação sem uma decisão explícita.
 - **Scripts aprovados:** apenas `esbuild@0.28.2`, necessário ao `tsx`, tem o `postinstall` autorizado. O script prepara/verifica o binário da plataforma; a autorização é limitada à versão revista. `unrs-resolver` deixou de fazer parte da árvore.
 - **Ao atualizar um pacote com scripts:** revê o código de instalação da nova versão antes de aprovar. `npm install-scripts ls` mostra as decisões pendentes. Para obter uma atualização para revisão, usa `npm install --ignore-scripts`; depois de rever, `npm install-scripts approve <pacote>` regista a versão aprovada e `npm ci` valida a instalação normal. Não uses aprovações globais, `--legacy-peer-deps` ou `npm audit fix --force` para esconder incompatibilidades.
-- **Auditoria:** `npm run audit` inclui dependências de desenvolvimento e falha perante vulnerabilidades conhecidas de qualquer severidade. Também é obrigatório na CI. Um resultado limpo é uma verificação pontual, não uma garantia permanente de segurança.
+- **Auditoria:** `npm run audit` inclui dependências de desenvolvimento e falha perante vulnerabilidades de qualquer severidade — é a verificação completa, para correr à mão. Na CI corre `npm audit --omit=dev --audit-level=high`, para que uma falha numa ferramenta de desenvolvimento não bloqueie um deploy e para que o pipeline fique verde quando o que é publicado está limpo. Um resultado limpo é uma verificação pontual, não uma garantia permanente de segurança.
 - **Atualizações futuras:** Dependabot está configurado para propor atualizações semanais de npm e GitHub Actions, em grupos para manter pacotes relacionados juntos. Só fica ativo quando esta configuração chegar à branch principal. PRs continuam sujeitos a revisão, scripts aprovados e testes; não há merge automático. Node/npm também devem ser revistos periodicamente.
 
 ### Lint com TypeScript 7
@@ -72,25 +72,47 @@ Tudo o que corre automaticamente parte de **`main`**. Branches de trabalho não 
 
 ### Tratamento de erros
 
-- `app/error.tsx` — fronteira de erro da rota: mensagem bilingue, botão para tentar de novo e contacto.
+- `app/error.tsx` — fronteira de erro da rota: mensagem bilingue, botão para tentar de novo e ligação ao formulário.
 - `app/global-error.tsx` — fallback quando o próprio layout falha (traz o seu `<html>`/`<body>` e estilos inline, porque o CSS global pode não existir).
 - `app/not-found.tsx` — 404 com o mesmo desenho, marcado `noindex`.
 - Os erros continuam a aparecer na consola e nos *runtime logs* do Vercel; não há serviço externo de monitorização.
 
+## Formulário de contacto
+
+Não há endereço em lado nenhum da página — nem no HTML, nem no bundle, nem nos estados de erro. A única porta é o formulário, e ele fala com o próprio servidor.
+
+- **Rota:** `POST /api/contact` (`app/api/contact/route.ts`). Corpo JSON `{ name, email, subject, message, elapsed, company }`.
+- **Validação:** `lib/contact.ts` é a única fonte da verdade — os mesmos limites servem o browser e o servidor. O browser valida para dar resposta imediata; o servidor valida outra vez porque a única validação que conta é a dele. Devolve `422` com os campos em falta e o código do erro (`required`, `email`, `short`, `long`); as frases vivem no dicionário, para qualquer idioma novo funcionar sem tocar em lógica.
+- **Anti-spam:** campo-armadilha fora do ecrã (`company`), tempo mínimo entre abrir e enviar (`elapsed` < 1,2 s é bot), limite de 5 envios por IP a cada 10 minutos (por instância, suficiente para travar um script) e teto de 8 KB no corpo do pedido. A um bot a rota responde `202` — o mesmo que um humano recebe — e não entrega nada.
+- **Entrega:** `lib/contact-delivery.ts` escolhe a via conforme o ambiente. Nada é lido do browser.
+
+| Variável | Para quê |
+| --- | --- |
+| `RESEND_API_KEY` + `CONTACT_TO` | [Resend](https://resend.com), gratuito até 3 000 e-mails/mês. No plano gratuito envia-se de `onboarding@resend.dev` para o endereço dono da conta. |
+| `CONTACT_FROM` | Opcional. Só com domínio verificado no Resend (`Portfolio <hello@dominio.com>`). |
+| `CONTACT_WEBHOOK` | Qualquer endpoint que aceite JSON (Zapier, Make, Formspree, Slack, Discord…). Recebe `{ name, email, subject, message, text }`. |
+
+Sem nenhuma variável definida a rota responde `503` e o formulário diz que o envio não está disponível — nunca finge que enviou. As variáveis estão documentadas em `.env.example` e configuram-se no Vercel em **Project → Settings → Environment Variables**.
+
+- **Estados:** erro por campo com `aria-invalid` e `aria-describedby`, foco no primeiro campo inválido, botão em `aria-busy` enquanto envia, falha de rede distinguida de falha do fornecedor, e um painel de sucesso que permite enviar outra mensagem.
+- **Testes:** `tests/contact.test.ts` cobre a validação campo a campo, a detecção de bots e as duas entregas (com `fetch` injectado, sem rede); `e2e/contact.spec.ts` cobre o formulário real, os estados de erro, o sucesso, a falha do fornecedor, a rede em baixo e a própria rota (422, 503, 202).
+
 ## Estrutura
 
-- `app/` — rotas Next.js, metadados e entrada dos estilos globais.
+- `app/` — rotas Next.js, metadados e entrada dos estilos globais; `app/api/contact/` é a única rota de servidor.
 - `components/layout/` — composição principal e navegação lateral.
-- `components/sections/` — secções do portfólio (hero, perfil, projectos, competências, currículo, contacto).
+- `components/sections/` — secções do portfólio (hero, perfil, projectos, competências, currículo, contacto e o formulário).
 - `components/ui/` — cartão de identidade, alternadores de tema/idioma, cabeçalhos e ligações utilitárias.
 - `context/` — estado persistente do tema e do idioma.
 - `data/` — conteúdo bilingue e tipos.
 - `lib/theme-water.ts` — ondas, paleta e camada Canvas da transição de água.
 - `lib/scramble.ts` — revelação letra a letra usada na troca de idioma.
+- `lib/contact.ts` — contrato do formulário: limites, validação, armadilha e detecção de bots.
+- `lib/contact-delivery.ts` — entrega por Resend ou webhook, escolhida pelo ambiente.
 - `lib/water-change.ts` — corre a transição: copia a página, aplica a mudança e limpa tudo.
 - `lib/water-snapshot.ts` — cópia visual da página anterior por baixo da animação.
 - `styles/` — tokens, base, navegação, secções, animação do tema e acessibilidade/impressão.
-- `tests/` — testes de conteúdo, navegação e comportamento/estrutura do tema.
+- `tests/` — testes de conteúdo, navegação, formulário e comportamento/estrutura do tema.
 
 ## Interface e manutenção
 
@@ -100,10 +122,10 @@ O visual é editorial e contido: uma nav fixa à esquerda, tipografia grande, mu
 - **Componentes:** `SectionHeading` uniformiza cabeçalhos; as secções mantêm a composição em `PortfolioShell`. Projectos e competências usam listas semânticas; o cartão de identidade é decorativo (`aria-hidden`).
 - **Estilos:** cores, largura máxima, raios e ritmo vertical em `styles/tokens.css`. A responsividade vive junto de cada bloco e a acessibilidade/impressão tem ficheiro próprio; a nav lateral passa a barra compacta aos 980px.
 - **Acessibilidade:** ligação para saltar para o conteúdo, IDs únicos, títulos associados às secções, foco visível e menu mobile com Escape, foco inicial e fecho ao sair. Tudo o que é decorativo respeita `prefers-reduced-motion`, `forced-colors` e impressão.
-- **Contacto:** a cópia só anuncia sucesso depois de a API Clipboard confirmar; falhas apresentam uma alternativa e o `mailto:` continua disponível.
+- **Contacto:** o formulário só anuncia sucesso depois de o servidor confirmar a entrega; falhas dizem qual falhou (rede ou fornecedor) e nunca apagam o texto escrito. Não há endereço de e-mail em lado nenhum.
 - **Testes:** `tests/ui.test.ts` verifica o HTML renderizado no servidor, navegação, traduções de controlos, destinos reais e contraste dos tokens de texto. Os testes da transição de água continuam independentes.
 
-Antes de publicar, testar PT/EN e claro/escuro entre 320px e desktop, navegação apenas com teclado, menu mobile, cópia de e-mail permitida/negada, PDFs e persistência após recarregar. Uma auditoria automática de acessibilidade não substitui a verificação com leitores de ecrã e dispositivos reais.
+Antes de publicar, testar PT/EN e claro/escuro entre 320px e desktop, navegação apenas com teclado, menu mobile, formulário e estados de erro, PDFs e persistência após recarregar. Uma auditoria automática de acessibilidade não substitui a verificação com leitores de ecrã e dispositivos reais.
 
 ## Tema claro/escuro e idioma
 
@@ -141,7 +163,7 @@ O objetivo é **compatibilidade funcional com melhoria progressiva**, não garan
 | Idioma (PT ↔ EN) | Palavras trocadas na hora e reveladas letra a letra; sem cópia, sem Canvas, sem clip |
 | `clip-path`/Canvas indisponíveis ou contexto 2D bloqueado | Mudança direta, sem deixar uma cópia a tapar a página |
 | `localStorage` bloqueado | Tema e idioma funcionam na sessão, sem prometer persistência |
-| Clipboard indisponível/negado | Mensagem de erro; endereço selecionável e ligação `mailto:` continuam disponíveis |
+| `/api/contact` sem variáveis definidas | O formulário diz que o envio está indisponível; nada é enviado nem perdido em silêncio |
 | Unidades `svh`/`dvh` indisponíveis | Dimensões alternativas em `vh` |
 
 Redimensionar, deslocar a página, ocultar o separador ou ativar movimento reduzido durante a água termina a animação no estado solicitado. Cliques sucessivos no tema invalidam callbacks antigos: prevalece a última escolha. Uma troca de idioma nunca espera pela água — as letras entram por cima do estado que já foi confirmado.
@@ -159,6 +181,6 @@ npm run test:browser -- --project=firefox
 
 O Playwright inicia o build de produção na porta 3100. `PLAYWRIGHT_BASE_URL` permite usar um servidor local já iniciado (fora de CI). Em `main`, a CI corre sempre Chromium; Firefox e WebKit correm na matriz completa quando alguém os pede no GitHub Actions (`.github/workflows/ci.yml`).
 
-`tests/theme.test.ts` verifica a origem central, a paleta neutra do tema de destino, a desaceleração das ondas, a monotonia do raio, a cobertura final dos cantos em vários viewports, o clip a cada frame, a limpeza de recursos e a revelação letra a letra (comprimento, espaços, movimento reduzido e palavra final). `e2e/compatibility.spec.ts` verifica a animação **com View Transitions removido**, a troca de idioma sem água e sem cópia, separação dos tokens, alinhamento desktop/mobile após scroll, clip final, cliques rápidos, movimento reduzido, redimensionamento, falhas de APIs, idiomas, menu e PDFs.
+`tests/theme.test.ts` verifica a origem central, a paleta neutra do tema de destino, a desaceleração das ondas, a monotonia do raio, a cobertura final dos cantos em vários viewports, o clip a cada frame, a limpeza de recursos e a revelação letra a letra (comprimento, espaços, movimento reduzido e palavra final). `e2e/compatibility.spec.ts` verifica a animação **com View Transitions removido**, a troca de idioma sem água e sem cópia, separação dos tokens, alinhamento desktop/mobile após scroll, clip final, cliques rápidos, movimento reduzido, redimensionamento, falhas de APIs, idiomas, menu e PDFs; `e2e/contact.spec.ts` trata do formulário.
 
 Testar os três motores reduz regressões, mas não certifica todas as versões de Zen, Safari/iOS ou browsers modificados. Confirmar também no browser/dispositivo real, especialmente com extensões e proteções de privacidade que possam bloquear Canvas.

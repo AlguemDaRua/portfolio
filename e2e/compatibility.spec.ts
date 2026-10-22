@@ -286,7 +286,7 @@ test("the final frame is fully open and leaves no clip behind", async ({
   await expect(live(page)).toHaveCSS("z-index", "auto");
 });
 
-test("mobile navigation, translation, PDFs and clipboard failure work across engines", async ({
+test("mobile navigation, translation, PDFs and the contact form work across engines", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -302,14 +302,9 @@ test("mobile navigation, translation, PDFs and clipboard failure work across eng
   await page.keyboard.press("Escape");
   await expect(menu).toBeFocused();
   await expect(menu).toHaveAttribute("aria-expanded", "false");
-  await page.evaluate(() =>
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText: () => Promise.reject(new Error("Denied")) },
-    }),
-  );
-  await live(page).getByRole("button", { name: "Copy email" }).click();
-  await expect(live(page).getByRole("status")).toContainText("Could not copy");
+  // Contact is a form now: nothing to copy, and no address in the page.
+  await expect(live(page).locator(".contact-form")).toBeVisible();
+  expect(await page.content()).not.toContain("proton.me");
   for (const path of ["/pdf/CV_AzamUsman_PT.pdf", "/pdf/CV_AzamUsman_EN.pdf"]) {
     expect((await page.request.get(path)).status()).toBe(200);
   }
