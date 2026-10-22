@@ -45,6 +45,34 @@ npm run test:all
 - **Auditoria:** `npm run audit` inclui dependências de desenvolvimento e falha perante vulnerabilidades de qualquer severidade — é a verificação completa, para correr à mão. Na CI corre `npm audit --omit=dev --audit-level=high`, para que uma falha numa ferramenta de desenvolvimento não bloqueie um deploy e para que o pipeline fique verde quando o que é publicado está limpo. Um resultado limpo é uma verificação pontual, não uma garantia permanente de segurança.
 - **Atualizações futuras:** Dependabot está configurado para propor atualizações semanais de npm e GitHub Actions, em grupos para manter pacotes relacionados juntos. Só fica ativo quando esta configuração chegar à branch principal. PRs continuam sujeitos a revisão, scripts aprovados e testes; não há merge automático. Node/npm também devem ser revistos periodicamente.
 
+### Cabeçalhos e superfície de ataque
+
+Os cabeçalhos vivem em `next.config.ts` (`securityHeaders`), não em `vercel.json`: viajam com a aplicação, por isso valem em `next start`, num contentor ou em qualquer host — não só no Vercel. `tests/security.test.ts` falha se algum desaparecer e `e2e/security.spec.ts` confirma-os na resposta real.
+
+| Cabeçalho | Para quê |
+| --- | --- |
+| `Content-Security-Policy` | `default-src 'self'`, sem `object-src`, sem `base-uri` externo, `form-action 'self'`, `frame-ancestors 'none'`, sem `unsafe-eval` |
+| `X-Frame-Options: DENY` + `frame-ancestors 'none'` | ninguém encaixa o site num iframe para roubar cliques |
+| `Strict-Transport-Security` | dois anos de HTTPS obrigatório, subdomínios incluídos |
+| `X-Content-Type-Options: nosniff` | o browser não adivinha tipos |
+| `Referrer-Policy` | o endereço completo não segue para fora |
+| `Permissions-Policy` | câmara, micro, localização, pagamento e USB desligados |
+| `Cross-Origin-Opener-Policy`, `X-DNS-Prefetch-Control`, `X-Permitted-Cross-Domain-Policies` | isolamento de janela e menos fugas laterais |
+
+`X-Powered-By` está desligado (`poweredByHeader: false`): não há razão para anunciar o framework e a versão.
+
+**Sobre a CSP, sem marketing:** `script-src` e `style-src` mantêm `'unsafe-inline'` porque o Next injeta um script de arranque e o React usa atributos `style`. Isso não é um nonce — é a diferença entre "um XSS externo é bloqueado" e "qualquer script inline corre". A parte que trava ataques reais (sem scripts externos, sem `eval`, sem iframes, sem `base` trocado, formulários só para cá) está fechada. Passar a nonce exige middleware por pedido e desliga o cache estático da página; não se faz sem necessidade.
+
+**Na rota de contacto:**
+
+- **Origem:** um `POST` com `Origin` diferente do host é recusado com `403`. É a defesa contra outro site a usar o endpoint pelo browser de um visitante. Pedidos sem `Origin` (curl, monitorização) passam — não trazem sessão de ninguém.
+- **Tipo de conteúdo:** só `application/json`. Um `POST` de formulário clássico (`text/plain`, `x-www-form-urlencoded`) nunca chega a CORS e é travado com `415`.
+- **Tamanho:** 8 KB, medidos em bytes UTF-8, não em caracteres.
+- **Texto:** caracteres de controlo (NUL, ESC…) são removidos antes de qualquer validação — não podem truncar um cabeçalho nem uma linha de log —, espaços repetidos colapsam, e o texto é normalizado em NFC.
+- **Abuso:** armadilha fora do ecrã, tempo mínimo de preenchimento, 5 envios por IP a cada 10 minutos. A um bot a resposta é `202`, igual à de uma pessoa, e nada é entregue.
+- **Segredos:** a chave do Resend e o endereço de destino vivem só no ambiente. Nenhum ficheiro versionado os contém, e o `grep` de `proton.me`/`@gmail` no HTML e no bundle faz parte dos testes.
+- **Crawlers e reporte:** `app/robots.ts` (com `/api/` fora do alcance), `app/sitemap.ts` e `public/.well-known/security.txt` — este último aponta para o formulário, nunca para um endereço de e-mail.
+
 ### Lint com TypeScript 7
 
 O lint usa **Oxlint**, com regras de Next.js, React/hooks, TypeScript, imports e acessibilidade; avisos também fazem falhar `npm run lint`. O type-check continua separado, com `tsc --noEmit` e modo estrito, e o build Next.js também verifica os tipos.
@@ -116,12 +144,15 @@ Sem nenhuma variável definida a rota responde `503` e o formulário diz que o e
 - `lib/theme-water.ts` — ondas, paleta e camada Canvas da transição de água.
 - `lib/scramble.ts` — revelação letra a letra usada na troca de idioma.
 - `lib/contact.ts` — contrato do formulário: limites, validação, armadilha e detecção de bots.
+- `lib/contact-http.ts` — quem pode chamar a rota: origem e tipo de conteúdo.
+- `app/robots.ts`, `app/sitemap.ts`, `app/manifest.ts` — o que os motores de busca e o browser recebem.
+- `public/.well-known/security.txt` — canal de reporte de segurança, sem endereço de e-mail.
 - `lib/contact-verify.ts` — o endereço existe? DNS (sempre) e verificação da caixa (opcional).
 - `lib/contact-delivery.ts` — entrega por Resend ou webhook, escolhida pelo ambiente.
 - `lib/water-change.ts` — corre a transição: copia a página, aplica a mudança e limpa tudo.
 - `lib/water-snapshot.ts` — cópia visual da página anterior por baixo da animação.
 - `styles/` — tokens, base, navegação, secções, animação do tema e acessibilidade/impressão.
-- `tests/` — testes de conteúdo, navegação, formulário e comportamento/estrutura do tema.
+- `tests/` — testes de conteúdo, navegação, formulário, segurança e comportamento/estrutura do tema.
 
 ## Interface e manutenção
 

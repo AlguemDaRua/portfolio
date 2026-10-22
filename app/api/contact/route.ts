@@ -3,6 +3,7 @@ import {
   looksAutomated,
   validateContact,
 } from "@/lib/contact";
+import { isCrossOrigin, isJsonRequest } from "@/lib/contact-http";
 import { deliverContact } from "@/lib/contact-delivery";
 import { verifyEmailAddress } from "@/lib/contact-verify";
 
@@ -13,9 +14,16 @@ const recent = new Map<string, number[]>();
 const json = (body: unknown, status = 200) =>
   Response.json(body, {
     status,
-    headers: { "cache-control": "no-store" },
+    headers: {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+    },
   });
 
+/**
+ * A small fixed window per client. One serverless instance is enough to stop a
+ * script; the real ceiling for a distributed flood is the provider's edge.
+ */
 function rateLimited(key: string, now: number): boolean {
   const hits = (recent.get(key) ?? []).filter((at) => now - at < WINDOW_MS);
   if (hits.length >= MAX_PER_WINDOW) {
@@ -25,7 +33,7 @@ function rateLimited(key: string, now: number): boolean {
   hits.push(now);
   recent.set(key, hits);
 
-  // A serverless instance lives long enough to need a ceiling on its map.
+  // A long-lived instance needs a ceiling on its own map.
   if (recent.size > 500) {
     for (const [entry, times] of recent) {
       if (!times.some((at) => now - at < WINDOW_MS)) recent.delete(entry);
@@ -35,6 +43,15 @@ function rateLimited(key: string, now: number): boolean {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  if (isCrossOrigin(request)) {
+    return json({ ok: false, error: "origin" }, 403);
+  }
+
+  // JSON only: it forces a CORS preflight, which this route never answers.
+  if (!isJsonRequest(request)) {
+    return json({ ok: false, error: "invalid" }, 415);
+  }
+
   const forwarded = request.headers.get("x-forwarded-for");
   const ip =
     forwarded?.split(",")[0]?.trim() ||

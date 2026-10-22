@@ -38,8 +38,31 @@ export type ContactMessage = {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-const readText = (value: unknown): string =>
-  typeof value === "string" ? value.trim() : "";
+/**
+ * Text arrives from a stranger, so it is normalised before it is judged:
+ * NUL and other control characters are dropped (they can truncate a header or
+ * a log line), tabs become spaces, and the result is NFC so two spellings of
+ * the same name compare and display the same way. Newlines survive inside the
+ * message, because a message is allowed to have paragraphs.
+ */
+const readText = (value: unknown, multiline = false): string => {
+  if (typeof value !== "string") return "";
+  // Dropping control characters is the whole point of this step.
+  /* eslint-disable no-control-regex */
+  const controls = multiline
+    ? /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g
+    : /[\u0000-\u001F\u007F]/g;
+  /* eslint-enable no-control-regex */
+
+  const cleaned = value
+    .replace(controls, " ")
+    .replace(/\r\n?/g, "\n")
+    // Spaces left behind by the cleaning are noise, never content.
+    .replace(/[ \t]*\n[ \t]*/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .normalize("NFC");
+  return cleaned.trim();
+};
 
 type ValidationResult =
   | { ok: true; value: ContactMessage }
@@ -50,7 +73,7 @@ export function validateContact(input: unknown): ValidationResult {
   const name = readText(source.name);
   const email = readText(source.email);
   const subject = readText(source.subject);
-  const message = readText(source.message);
+  const message = readText(source.message, true);
   const errors: ContactErrors = {};
 
   if (!name) errors.name = "required";

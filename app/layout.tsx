@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+const site = "https://azam.lol";
 const title = "Azam Usman — Engenheiro de Software";
 const description =
   "Do ecrã ao servidor. Aplicações móveis em Flutter, serviços backend em Go e Java, e infraestrutura em contentores. Maputo, Moçambique.";
@@ -9,7 +10,10 @@ export const metadata: Metadata = {
   title,
   description,
   applicationName: "Azam Usman",
+  metadataBase: new URL(site),
+  alternates: { canonical: "/" },
   openGraph: {
+    url: site,
     title,
     description,
     siteName: "Azam Usman",
@@ -18,6 +22,7 @@ export const metadata: Metadata = {
     alternateLocale: ["en_US"],
   },
   twitter: { card: "summary", title, description },
+  robots: { index: true, follow: true },
   authors: [{ name: "Azam Usman" }],
   creator: "Azam Usman",
   keywords: [
@@ -88,7 +93,42 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen font-sans antialiased">{children}</body>
+      <body className="min-h-screen font-sans antialiased">
+        {children}
+        {/*
+          Structured data for search engines: who this is, what they do, where.
+          No address and no telephone — the form is the only way in.
+        */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Person",
+              name: "Azam Usman",
+              url: site,
+              jobTitle: "Engenheiro de Software",
+              description,
+              knowsLanguage: ["pt-MZ", "en"],
+              knowsAbout: [
+                "Flutter",
+                "Dart",
+                "Go",
+                "Java",
+                "Docker",
+                "Next.js",
+                "React",
+                "PostgreSQL",
+              ],
+              address: {
+                "@type": "PostalAddress",
+                addressLocality: "Maputo",
+                addressCountry: "MZ",
+              },
+            }).replace(/</g, "\\u003c"),
+          }}
+        />
+      </body>
     </html>
   );
 }

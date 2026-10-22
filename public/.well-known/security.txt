@@ -1,0 +1,5 @@
+# Como reportar um problema de segurança neste site.
+Contact: https://azam.lol/#contact
+Preferred-Languages: pt, en
+Canonical: https://azam.lol/.well-known/security.txt
+Expires: 2027-10-22T00:00:00.000Z
