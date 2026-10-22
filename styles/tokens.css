@@ -2,11 +2,10 @@
   color-scheme: light;
   --paper: #fafaf7;
   --paper-raised: #ffffff;
-  --ink: #15161a;
+  --text: #15161a;
   --muted: #5b5e67;
   --line: #e4e4dd;
   --accent: #2f3ed6;
-  --accent-hover: #2634b8;
   --soft: #f1f1eb;
   --strong: #1a1b20;
   --body-text: #43464e;
@@ -15,17 +14,15 @@
   --subtle: #5b5e67;
   --faint: #5f626b;
   --control: #d3d4cd;
-  --border-mid: #dcdcd4;
-  --active-bg: #ececf7;
   --inverse-text: #ffffff;
   --shadow: rgba(22, 24, 29, 0.06);
   --shadow-lift: rgba(22, 24, 29, 0.1);
   --card-bg: #17181d;
   --card-bg-soft: #1e2026;
   --card-line: rgba(255, 255, 255, 0.09);
-  --card-ink: #f7f7f2;
+  --card-text: #f7f7f2;
   --card-pill: #fbfbf7;
-  --card-pill-ink: #1a1b20;
+  --card-pill-text: #1a1b20;
   --accent-soft: rgba(47, 62, 214, 0.1);
   --font-geist-sans: "Geist Variable";
   --font-geist-mono: "Geist Mono Variable";
@@ -43,11 +40,10 @@
   color-scheme: dark;
   --paper: #0d0e11;
   --paper-raised: #14161b;
-  --ink: #f4f4f0;
+  --text: #f4f4f0;
   --muted: #a6a9b2;
   --line: #23262e;
   --accent: #9da8ff;
-  --accent-hover: #bcc4ff;
   --soft: #14161b;
   --strong: #fafaf6;
   --body-text: #c7cad2;
@@ -56,17 +52,15 @@
   --subtle: #a0a4ad;
   --faint: #9aa0a9;
   --control: #343945;
-  --border-mid: #2f333d;
-  --active-bg: #1d2130;
   --inverse-text: #0b0c0f;
   --shadow: rgba(0, 0, 0, 0.34);
   --shadow-lift: rgba(0, 0, 0, 0.5);
   --card-bg: #16171c;
   --card-bg-soft: #1d1f25;
   --card-line: rgba(255, 255, 255, 0.08);
-  --card-ink: #f7f7f2;
+  --card-text: #f7f7f2;
   --card-pill: #fbfbf7;
-  --card-pill-ink: #1a1b20;
+  --card-pill-text: #1a1b20;
   --accent-soft: rgba(157, 168, 255, 0.14);
 }
 

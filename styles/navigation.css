@@ -40,7 +40,7 @@
   flex: 0 0 auto;
   border-radius: 11px;
   color: var(--paper);
-  background: var(--ink);
+  background: var(--text);
   font-size: 14px;
   font-weight: 560;
   letter-spacing: -0.06em;
@@ -127,12 +127,12 @@
 }
 
 .rail-nav a:hover {
-  color: var(--ink);
+  color: var(--text);
   background: var(--soft);
 }
 
 .rail-nav a.active {
-  color: var(--ink);
+  color: var(--text);
   background: var(--soft);
 }
 
@@ -205,11 +205,11 @@
 }
 
 .theme-switch button:hover {
-  color: var(--ink);
+  color: var(--text);
 }
 
 .theme-switch button.active {
-  color: var(--ink);
+  color: var(--text);
   background: var(--paper-raised);
   box-shadow: 0 1px 2px var(--shadow), 0 4px 12px -8px var(--shadow-lift);
 }
@@ -251,7 +251,7 @@
 }
 
 .language-switch button:hover {
-  color: var(--ink);
+  color: var(--text);
   background: var(--soft);
 }
 
@@ -450,7 +450,7 @@
     display: block;
     width: 15px;
     height: 1px;
-    background: var(--ink);
+    background: var(--text);
     transition: transform 200ms var(--ease);
   }
 

@@ -7,15 +7,15 @@ html.theme-transitioning *::after {
 }
 
 /* A visual-only copy of the OLD theme above the real, interactive NEW theme.
-   A canvas erases this mask from the centre outwards: one impact, then a wave.
-   Both backgrounds and glyphs stay visible, without colour inversion. */
+   A drop of water lands in the centre and its ripples erase this mask. Both
+   backgrounds and glyphs stay visible, without colour inversion. */
 .theme-snapshot {
   position: fixed;
   inset: 0;
   z-index: 9999;
   overflow: hidden;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--text);
   pointer-events: none;
   -webkit-mask-image: linear-gradient(black, black);
   mask-image: linear-gradient(black, black);
@@ -34,8 +34,21 @@ html.theme-transitioning *::after {
   transition: none !important;
 }
 
+/* The visible water: falling drop, splash and ripple highlights. It sits above
+   the old-theme copy, never intercepts input, and is removed when the reveal
+   ends. */
+.water-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce), print {
-  .theme-snapshot {
+  .theme-snapshot,
+  .water-reveal {
     display: none !important;
   }
 }

@@ -8,14 +8,14 @@ html {
   scroll-behavior: smooth;
   scroll-padding-top: 88px;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--text);
   -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--text);
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.6;
@@ -50,14 +50,14 @@ svg {
 
 ::selection {
   color: var(--inverse-text);
-  background: var(--ink);
+  background: var(--text);
 }
 
 .site-shell {
   position: relative;
   isolation: isolate;
   min-height: 100vh;
-  color: var(--ink);
+  color: var(--text);
   background: var(--paper);
 }
 
@@ -149,7 +149,7 @@ ul {
   padding: 12px 20px;
   border-radius: var(--radius-small);
   color: var(--inverse-text);
-  background: var(--ink);
+  background: var(--text);
   transform: translateY(-180%);
 }
 

@@ -26,7 +26,7 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => document.fonts.ready);
 });
 
-test("ink works without View Transitions and preserves exact old/new theme tokens", async ({
+test("the water reveal works without View Transitions and keeps the exact old/new tokens", async ({
   page,
 }) => {
   await page.evaluate(() => {
@@ -35,9 +35,9 @@ test("ink works without View Transitions and preserves exact old/new theme token
       value: undefined,
     });
   });
-  const oldInk = await page
+  const oldToken = await page
     .locator("html")
-    .evaluate((root) => getComputedStyle(root).getPropertyValue("--ink"));
+    .evaluate((root) => getComputedStyle(root).getPropertyValue("--text"));
   await setTheme(page, true);
   const snapshot = page.locator(".theme-snapshot");
   await expect(snapshot).toHaveCount(1);
@@ -45,14 +45,14 @@ test("ink works without View Transitions and preserves exact old/new theme token
   await expect(snapshot).toHaveAttribute("inert", "");
   expect(
     await snapshot.evaluate((node) =>
-      getComputedStyle(node).getPropertyValue("--ink"),
+      getComputedStyle(node).getPropertyValue("--text"),
     ),
-  ).toBe(oldInk);
+  ).toBe(oldToken);
   expect(
     await page
       .locator("html")
-      .evaluate((root) => getComputedStyle(root).getPropertyValue("--ink")),
-  ).not.toBe(oldInk);
+      .evaluate((root) => getComputedStyle(root).getPropertyValue("--text")),
+  ).not.toBe(oldToken);
   await expect
     .poll(() => snapshot.evaluate((node) => getComputedStyle(node).maskImage))
     .toContain("data:image/png");

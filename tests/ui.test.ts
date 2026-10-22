@@ -93,7 +93,7 @@ test("Small-text theme tokens maintain WCAG AA contrast on their surfaces", () =
       ]),
     );
     const pairs = [
-      ["--ink", "--paper"],
+      ["--text", "--paper"],
       ["--muted", "--paper"],
       ["--meta", "--paper"],
       ["--faint", "--paper"],
@@ -101,8 +101,9 @@ test("Small-text theme tokens maintain WCAG AA contrast on their surfaces", () =
       ["--body-text", "--soft"],
       ["--body-muted", "--soft"],
       ["--meta", "--soft"],
-      ["--accent", "--active-bg"],
-      ["--inverse-text", "--ink"],
+      ["--accent", "--paper"],
+      ["--accent", "--soft"],
+      ["--inverse-text", "--text"],
       ["--inverse-text", "--accent"],
     ];
     for (const [foreground, background] of pairs) {

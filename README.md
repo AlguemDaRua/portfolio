@@ -61,7 +61,7 @@ As exceções são intencionais: o JSX automático não exige `React` no scope; 
 - `components/ui/` — cartão de identidade, alternadores de tema/idioma, cabeçalhos e ligações utilitárias.
 - `context/` — estado persistente do tema e do idioma.
 - `data/` — conteúdo bilingue e tipos.
-- `lib/theme-paint.ts` — impacto central, frente de onda e máscara Canvas do tema.
+- `lib/theme-water.ts` — gota, ondas e máscara Canvas da troca de tema.
 - `lib/theme-snapshot.ts` — cópia visual do tema anterior por baixo da animação.
 - `styles/` — tokens, base, navegação, secções, animação do tema e acessibilidade/impressão.
 - `tests/` — testes de conteúdo, navegação e comportamento/estrutura do tema.
@@ -75,22 +75,25 @@ O visual é editorial e contido: uma nav fixa à esquerda, tipografia grande, mu
 - **Estilos:** cores, largura máxima, raios e ritmo vertical em `styles/tokens.css`. A responsividade vive junto de cada bloco e a acessibilidade/impressão tem ficheiro próprio; a nav lateral passa a barra compacta aos 980px.
 - **Acessibilidade:** ligação para saltar para o conteúdo, IDs únicos, títulos associados às secções, foco visível e menu mobile com Escape, foco inicial e fecho ao sair. Tudo o que é decorativo respeita `prefers-reduced-motion`, `forced-colors` e impressão.
 - **Contacto:** a cópia só anuncia sucesso depois de a API Clipboard confirmar; falhas apresentam uma alternativa e o `mailto:` continua disponível.
-- **Testes:** `tests/ui.test.ts` verifica o HTML renderizado no servidor, navegação, traduções de controlos, destinos reais e contraste dos tokens de texto. Os testes da máscara de tinta continuam independentes.
+- **Testes:** `tests/ui.test.ts` verifica o HTML renderizado no servidor, navegação, traduções de controlos, destinos reais e contraste dos tokens de texto. Os testes da máscara de água continuam independentes.
 
 Antes de publicar, testar PT/EN e claro/escuro entre 320px e desktop, navegação apenas com teclado, menu mobile, cópia de e-mail permitida/negada, PDFs e persistência após recarregar. Uma auditoria automática de acessibilidade não substitui a verificação com leitores de ecrã e dispositivos reais.
 
 ## Tema claro/escuro
 
-A preferência inicial respeita o tema do sistema e é carregada antes da primeira pintura da página. Em navegadores compatíveis, a troca é revelada por **um único impacto no centro do viewport** seguido de **uma frente de onda** que se abre para as margens — já não há gotas a cair por todo o lado. A animação dura cerca de **0,9 segundos**.
+A preferência inicial respeita o tema do sistema e é carregada antes da primeira pintura da página. Em navegadores compatíveis, a troca é revelada por **uma gota de água a cair no centro exato do viewport**: a gota acelera, bate na superfície, salpica e abre **ondas concêntricas** que se propagam em tempo real até às margens. Duração total: **1,15 s**. Nada cai fora do centro — só uma superfície de água a acalmar.
 
 ### Como funciona
 
 - `ThemeToggle` continua a usar `changeTheme`, sem coordenadas do botão nem alterações na composição das secções.
 - `lib/theme-snapshot.ts` cria uma cópia visual temporária do portfólio no **tema antigo**, fixando os tokens computados. A cópia é `inert`, `aria-hidden`, não interceta cliques e não duplica IDs. A posição do conteúdo, da nav fixa e do cabeçalho sticky é preservada, mesmo com a página deslocada.
 - `ThemeContext` faz o commit do tema novo na árvore React real, por baixo dessa cópia. Nenhuma inversão de cores é usada.
-- `lib/theme-paint.ts` desenha o impacto (contorno irregular com curvas quadráticas, mais satélites pequenos) e depois a frente de onda num Canvas 2D **fora do DOM**. A máscara começa opaca; `destination-out` abre o recorte na cópia antiga e mostra o tema novo real, incluindo letras e componentes.
-- A fronteira da onda é um polígono radial com duas harmónicas de baixa amplitude, cuja ondulação cresce a partir do impacto — o primeiro anel parece líquido e não uma estrela. O raio final inclui margem para limpar os cantos sob qualquer ondulação, garantindo que a máscara fica totalmente vazia no último frame.
-- A tinta que já foi apagada nunca volta atrás: o impacto é estampado uma vez e cada frame apenas avança a frente. No fim, a máscara completamente apagada tem uma oportunidade de pintura antes da remoção da cópia. Frames, listeners, cópia e memória do Canvas são libertados também em interrupções e erros.
+- `lib/theme-water.ts` corre sobre **dois Canvas 2D fora do DOM**:
+  - **máscara** — começa opaca e usa `destination-out` para consumir a cópia antiga a partir do centro. O tema novo real, com letras e componentes, aparece por baixo.
+  - **água visível** — desenha a gota em queda (com rasto e reflexo especular), a coroa de água no contacto e as ondas com brilhos. A paleta adapta-se à superfície que vai ser atingida: água escura sobre página clara, água luminosa sobre página escura.
+- **Física, não linearidade:** a queda é quadrática (gravidade); a frente das ondas sai depressa e desacelera como uma onda real; os brilhos desvanecem à medida que a superfície se acalma.
+- **Garantia de cobertura:** cada frente é limitada inferiormente (`WATER_MIN_WOBBLE`), e o raio máximo inclui essa margem mais folga para os cantos — logo o último frame cobre sempre o viewport, testado de 1×1 a 4000×300. Um `settle` final de 150 ms remove a última película sem “pop”.
+- **A água nunca anda para trás:** a máscara só perde alfa; o raio e o settle são monotónicos. A máscara é codificada a ~30 fps (orçamento de ~640 mil píxeis), enquanto a camada visível corre a cada frame. Ambas as camadas, os listeners e a cópia são libertados no fim, em interrupções e em erros.
 - A máscara é aplicada diretamente a um **elemento HTML normal**, com `mask-image` e o equivalente `-webkit-mask-image`. Não depende de `document.startViewTransition()`, animação de pseudo-elementos, deteção do nome do browser ou `mix-blend-mode: difference`.
 
 A cópia visual foi desenhada para os componentes estáticos deste portfólio, não como biblioteca genérica de screenshots de qualquer DOM. Ao acrescentar vídeos, iframes, Canvas visíveis ou componentes com seletores dependentes de IDs, rever a fidelidade da cópia e os testes de alinhamento.
@@ -101,7 +104,7 @@ O objetivo é **compatibilidade funcional com melhoria progressiva**, não garan
 
 | Capacidade | Comportamento |
 | --- | --- |
-| Canvas 2D e máscaras CSS normais | Impacto e onda nos dois sentidos, independentemente de existir View Transitions |
+| Canvas 2D e máscaras CSS normais | Gota, coroa e ondas nos dois sentidos, independentemente de existir View Transitions |
 | Movimento reduzido ou separador oculto | Mudança de tema sem animação |
 | Máscaras/Canvas indisponíveis, leitura do Canvas bloqueada ou erro de codificação | Mudança direta, sem deixar uma cópia a tapar a página |
 | `localStorage` bloqueado | Tema e idioma funcionam na sessão, sem prometer persistência |
@@ -109,8 +112,6 @@ O objetivo é **compatibilidade funcional com melhoria progressiva**, não garan
 | Unidades `svh`/`dvh` indisponíveis | Dimensões alternativas em `vh` |
 
 Redimensionar, deslocar a página, ocultar o separador ou ativar movimento reduzido durante o efeito termina a animação no tema solicitado. Cliques sucessivos invalidam callbacks antigos: prevalece a última escolha.
-
-O Canvas usa `willReadFrequently` para evitar leituras dispendiosas da GPU. A máscara tem DPR máximo de 2 e um orçamento aproximado de 1,4 milhões de píxeis; em ecrãs maiores só a máscara é reamostrada, não o texto. As propriedades da máscara são atualizadas diretamente no elemento temporário, sem invalidar variáveis herdadas em toda a cópia. O desempenho depende do dispositivo: não há garantia de 60/120 fps.
 
 ### Testes entre motores
 
@@ -125,6 +126,6 @@ npm run test:browser -- --project=firefox
 
 O Playwright inicia o build de produção na porta 3100. `PLAYWRIGHT_BASE_URL` permite usar um servidor local já iniciado (fora de CI). A CI executa projetos separados para Chromium, Firefox e WebKit, além dos testes unitários/build.
 
-`tests/theme.test.ts` verifica a origem central, a monotonia da frente, a cobertura final dos cantos em vários viewports, a acumulação de tinta e a limpeza de recursos. `e2e/compatibility.spec.ts` verifica a animação **com View Transitions removido**, separação dos tokens, alinhamento desktop/mobile após scroll, máscara final, cliques rápidos, movimento reduzido, redimensionamento, falhas de APIs, idiomas, menu e PDFs.
+`tests/theme.test.ts` verifica a origem central, a queda acelerada, a desaceleração das ondas, a monotonia do raio, a cobertura final dos cantos em vários viewports e a limpeza de recursos. `e2e/compatibility.spec.ts` verifica a animação **com View Transitions removido**, separação dos tokens, alinhamento desktop/mobile após scroll, máscara final, cliques rápidos, movimento reduzido, redimensionamento, falhas de APIs, idiomas, menu e PDFs.
 
 Testar os três motores reduz regressões, mas não certifica todas as versões de Zen, Safari/iOS ou browsers modificados. Confirmar também no browser/dispositivo real, especialmente com extensões e proteções de privacidade que possam bloquear Canvas.

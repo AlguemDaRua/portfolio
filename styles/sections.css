@@ -69,7 +69,7 @@
 
 .hero h1 {
   margin: 22px 0 0;
-  color: var(--ink);
+  color: var(--text);
   font-size: clamp(52px, 6.6vw, 92px);
   font-weight: 500;
   line-height: 0.96;
@@ -115,9 +115,9 @@
 }
 
 .btn-primary {
-  border: 1px solid var(--ink);
+  border: 1px solid var(--text);
   color: var(--inverse-text);
-  background: var(--ink);
+  background: var(--text);
 }
 
 .btn-primary svg {
@@ -149,7 +149,7 @@
 }
 
 .btn-ghost:hover {
-  color: var(--ink);
+  color: var(--text);
   border-color: var(--control);
   background: var(--soft);
 }
@@ -218,7 +218,7 @@
     0 1px 0 rgba(255, 255, 255, 0.05) inset,
     0 40px 80px -56px rgba(9, 10, 14, 0.85),
     0 2px 18px -8px rgba(9, 10, 14, 0.35);
-  color: var(--card-ink);
+  color: var(--card-text);
   transition: transform 500ms var(--ease-out);
 }
 
@@ -349,7 +349,7 @@
   position: absolute;
   padding: 8px 15px;
   border-radius: var(--radius-pill);
-  color: var(--card-pill-ink);
+  color: var(--card-pill-text);
   background: var(--card-pill);
   box-shadow: 0 12px 26px -14px rgba(0, 0, 0, 0.7);
   font-size: clamp(10px, 2.9cqw, 12.5px);
@@ -638,7 +638,7 @@
 }
 
 .skill-group li:hover {
-  color: var(--ink);
+  color: var(--text);
   border-color: var(--accent);
 }
 
@@ -751,7 +751,7 @@
 
 .resume-btn.primary {
   color: var(--inverse-text);
-  background: var(--ink);
+  background: var(--text);
 }
 
 .resume-btn.primary:hover {
@@ -764,7 +764,7 @@
 }
 
 .resume-btn.secondary:hover {
-  color: var(--ink);
+  color: var(--text);
   border-color: var(--control);
   background: var(--soft);
 }
@@ -783,7 +783,7 @@
       transparent 60%
     ),
     linear-gradient(160deg, var(--card-bg-soft), var(--card-bg));
-  color: var(--card-ink);
+  color: var(--card-text);
 }
 
 :root[data-theme="dark"] .contact-panel {
@@ -822,7 +822,7 @@
 .contact-copy h2 {
   max-width: 18ch;
   margin: 20px 0 0;
-  color: var(--card-ink);
+  color: var(--card-text);
   font-size: clamp(34px, 4.6vw, 60px);
   font-weight: 500;
   line-height: 1.02;
@@ -853,7 +853,7 @@
   gap: 10px;
   padding-bottom: 4px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.24);
-  color: var(--card-ink);
+  color: var(--card-text);
   font-size: clamp(16px, 1.7vw, 22px);
   font-weight: 450;
   letter-spacing: -0.03em;

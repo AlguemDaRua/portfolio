@@ -10,11 +10,11 @@ import React, {
 import { flushSync } from "react-dom";
 import { createThemeSnapshot, type ThemeSnapshot } from "@/lib/theme-snapshot";
 import {
-  createThemePaint,
-  createThemeTransition,
+  createWaterReveal,
+  createWaterTransition,
   type ThemeMode,
-  THEME_TRANSITION_DURATION_MS,
-} from "@/lib/theme-paint";
+  WATER_DURATION_MS,
+} from "@/lib/theme-water";
 
 interface ThemeContextValue {
   theme: ThemeMode;
@@ -29,7 +29,7 @@ let activeTarget: ThemeMode | null = null;
 let disposeActiveTransition: (() => void) | null = null;
 
 function cancelThemeTransition() {
-  // Invalidate completion callbacks from any previous paint session.
+  // Invalidate completion callbacks from any previous water session.
   activeTransitionVersion += 1;
   disposeActiveTransition?.();
   disposeActiveTransition = null;
@@ -120,7 +120,7 @@ function applyTheme(theme: ThemeMode) {
   notifyThemeListeners();
 }
 
-function supportsPaintMasks(): boolean {
+function supportsWaterMask(): boolean {
   if (typeof CSS === "undefined" || typeof CSS.supports !== "function")
     return false;
 
@@ -145,7 +145,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     cancelThemeTransition();
     const root = document.documentElement;
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (motion.matches || document.hidden || !supportsPaintMasks()) {
+    if (motion.matches || document.hidden || !supportsWaterMask()) {
       applyTheme(nextTheme);
       return;
     }
@@ -158,12 +158,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     const version = activeTransitionVersion;
     let snapshot: ThemeSnapshot | null = null;
-    let paint: ReturnType<typeof createThemePaint>;
+    let reveal: ReturnType<typeof createWaterReveal>;
     root.classList.add("theme-transitioning");
     try {
       snapshot = createThemeSnapshot(source);
-      paint = createThemePaint(
-        createThemeTransition(nextTheme, root.clientWidth, root.clientHeight),
+      reveal = createWaterReveal(
+        createWaterTransition(nextTheme, root.clientWidth, root.clientHeight),
         snapshot.element,
       );
     } catch {
@@ -177,7 +177,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const finish = () => {
       if (version !== activeTransitionVersion) return;
       cancelThemeTransition();
-      // Keep the requested theme even if painting was interrupted or failed.
+      // Keep the requested theme even if the water was interrupted or failed.
       applyTheme(nextTheme);
     };
     const scrollX = window.scrollX;
@@ -195,7 +195,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
     const watchdog = window.setTimeout(
       finish,
-      THEME_TRANSITION_DURATION_MS + 2_000,
+      WATER_DURATION_MS + 2_000,
     );
     window.addEventListener("resize", finish);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -203,7 +203,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     motion.addEventListener("change", onMotionChange);
 
     disposeActiveTransition = () => {
-      paint.dispose();
+      reveal.dispose();
       snapshot?.dispose();
       window.clearTimeout(watchdog);
       window.removeEventListener("resize", finish);
@@ -214,11 +214,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     // The old copy already covers the viewport. Commit the actual React tree
-    // underneath it, then reveal it with ordinary CSS masking. No UA sniffing,
+    // underneath it, then peel it away with a drop of water. No UA sniffing,
     // View Transitions API, or WAAPI pseudo-element support is required.
     try {
       flushSync(() => applyTheme(nextTheme));
-      paint.play(finish);
+      reveal.play(finish);
     } catch {
       finish();
     }
