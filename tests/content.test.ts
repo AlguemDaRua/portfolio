@@ -81,6 +81,11 @@ test("Contact Information Integrity", () => {
     for (const [code, message] of Object.entries(contact.form.errors)) {
       assert.ok(message.trim().length > 0, `Missing error copy for ${code}`);
     }
+    // The suggestion sentence is a template the form fills in; both locales
+    // must carry the placeholder or the repair button has nowhere to go.
+    assert.match(contact.form.errors.typo, /\{suggestion\}/);
+    assert.equal(contact.form.errors.typo.split("{suggestion}").length, 2);
+
     // The address never travels with the copy: the form is the only door.
     assert.doesNotMatch(JSON.stringify(contact), /@proton\.me/i);
   }

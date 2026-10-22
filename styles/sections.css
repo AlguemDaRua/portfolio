@@ -934,6 +934,22 @@ textarea.contact-input {
   line-height: 1.45;
 }
 
+/* The suggested address is a button: one click repairs the field. */
+.contact-fix {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid currentcolor;
+  color: inherit;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.contact-fix:hover,
+.contact-fix:focus-visible {
+  color: #ffd9d1;
+}
+
 .contact-form-foot {
   display: flex;
   flex-wrap: wrap;

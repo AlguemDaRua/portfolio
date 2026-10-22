@@ -4,6 +4,7 @@ import {
   validateContact,
 } from "@/lib/contact";
 import { deliverContact } from "@/lib/contact-delivery";
+import { verifyEmailAddress } from "@/lib/contact-verify";
 
 const WINDOW_MS = 10 * 60_000;
 const MAX_PER_WINDOW = 5;
@@ -63,6 +64,26 @@ export async function POST(request: Request): Promise<Response> {
 
   if (rateLimited(ip, Date.now())) {
     return json({ ok: false, error: "rate" }, 429);
+  }
+
+  // A ghost address costs the visitor an answer nobody can deliver: check the
+  // domain exists (free) and, when configured, that the mailbox does too.
+  const verdict = await verifyEmailAddress(parsed.value.email, {
+    key: process.env.EMAIL_VERIFIER_KEY,
+    provider: process.env.EMAIL_VERIFIER_PROVIDER,
+  });
+  if (!verdict.ok) {
+    return json(
+      {
+        ok: false,
+        error: "validation",
+        fields: { email: verdict.reason },
+        ...(verdict.reason === "typo" && verdict.suggestion
+          ? { suggestion: verdict.suggestion }
+          : {}),
+      },
+      422,
+    );
   }
 
   try {

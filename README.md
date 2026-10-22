@@ -84,6 +84,10 @@ Não há endereço em lado nenhum da página — nem no HTML, nem no bundle, nem
 - **Rota:** `POST /api/contact` (`app/api/contact/route.ts`). Corpo JSON `{ name, email, subject, message, elapsed, company }`.
 - **Validação:** `lib/contact.ts` é a única fonte da verdade — os mesmos limites servem o browser e o servidor. O browser valida para dar resposta imediata; o servidor valida outra vez porque a única validação que conta é a dele. Devolve `422` com os campos em falta e o código do erro (`required`, `email`, `short`, `long`); as frases vivem no dicionário, para qualquer idioma novo funcionar sem tocar em lógica.
 - **Anti-spam:** campo-armadilha fora do ecrã (`company`), tempo mínimo entre abrir e enviar (`elapsed` < 1,2 s é bot), limite de 5 envios por IP a cada 10 minutos (por instância, suficiente para travar um script) e teto de 8 KB no corpo do pedido. A um bot a rota responde `202` — o mesmo que um humano recebe — e não entrega nada.
+- **O endereço existe?** Sim, é verificado antes de qualquer entrega (`lib/contact-verify.ts`), em duas camadas:
+  1. **Domínio** — sempre, sem conta e sem chave. Uma consulta DNS-over-HTTPS confirma que o domínio aceita correio (registo MX, ou o `A`/`AAAA` que a RFC 5321 ainda permite). Apanha domínios inventados, gralhas no domínio e endereços de sítios que não têm correio. Uma gralha conhecida (`gmial.com`, `gmail.con`, `hotmial.com`…) volta com a correção pronta, num botão que preenche o campo.
+  2. **Caixa de correio** — só se configurares uma chave gratuita. Provar que uma caixa concreta existe obriga a falar SMTP na porta 25 com o fornecedor, o que uma função serverless não pode fazer; por isso essa parte é delegada a uma API gratuita: `abstract` (100/mês), `quickemailverification` (100/dia) ou `mailboxlayer` (100/mês).
+  Se a rede não souber responder (DNS em baixo, API a devolver erro), o endereço **passa**: uma avaria nossa nunca pode custar a mensagem de uma pessoa real. Nunca há um "válido" inventado — há "não sei", que não bloqueia.
 - **Entrega:** `lib/contact-delivery.ts` escolhe a via conforme o ambiente. Nada é lido do browser.
 
 | Variável | Para quê |
@@ -91,13 +95,14 @@ Não há endereço em lado nenhum da página — nem no HTML, nem no bundle, nem
 | `RESEND_API_KEY` + `CONTACT_TO` | [Resend](https://resend.com), gratuito até 3 000 e-mails/mês (100/dia), sem cartão. O plano gratuito só entrega ao endereço dono da conta, por isso cria a conta com o endereço que queres receber e repete-o em `CONTACT_TO`. |
 | `CONTACT_FROM` | Opcional. Só com domínio verificado no Resend (`Portfolio <hello@dominio.com>`). |
 | `CONTACT_WEBHOOK` | Qualquer endpoint que aceite JSON (Zapier, Make, Formspree, Slack, Discord…). Recebe `{ name, email, subject, message, text }`. |
+| `EMAIL_VERIFIER_PROVIDER` + `EMAIL_VERIFIER_KEY` | Opcional. Verificação da caixa de quem escreve por uma API gratuita (`abstract`, `quickemailverification` ou `mailboxlayer`). Sem isto, só o domínio é verificado. |
 
 **Resend em quatro passos, sem pagar nada:** criar conta em resend.com com o endereço de destino → **API Keys → Create API Key** (permissão de envio) → colar a chave em `RESEND_API_KEY` e o teu endereço em `CONTACT_TO` (Vercel: **Settings → Environment Variables**, ou `.env.local` se estiveres a correr o site na tua máquina) → voltar a publicar. O e-mail do visitante vai no `reply_to`, portanto responderes é um clique.
 
 Sem nenhuma variável definida a rota responde `503` e o formulário diz que o envio não está disponível — nunca finge que enviou. As variáveis estão documentadas em `.env.example` e configuram-se no Vercel em **Project → Settings → Environment Variables**.
 
 - **Estados:** erro por campo com `aria-invalid` e `aria-describedby`, foco no primeiro campo inválido, botão em `aria-busy` enquanto envia, falha de rede distinguida de falha do fornecedor, e um painel de sucesso que permite enviar outra mensagem.
-- **Testes:** `tests/contact.test.ts` cobre a validação campo a campo, a detecção de bots e as duas entregas (com `fetch` injectado, sem rede); `e2e/contact.spec.ts` cobre o formulário real, os estados de erro, o sucesso, a falha do fornecedor, a rede em baixo e a própria rota (422, 503, 202).
+- **Testes:** `tests/verify.test.ts` cobre a verificação do domínio (MX, recurso ao `A`, NXDOMAIN, DNS em baixo), as gralhas sugeridas e as três APIs, tudo com `fetch` injectado; `tests/contact.test.ts` cobre a validação campo a campo, a detecção de bots e as duas entregas (com `fetch` injectado, sem rede); `e2e/contact.spec.ts` cobre o formulário real, os estados de erro, o sucesso, a falha do fornecedor, a rede em baixo e a própria rota (422, 503, 202).
 
 ## Estrutura
 
@@ -110,6 +115,7 @@ Sem nenhuma variável definida a rota responde `503` e o formulário diz que o e
 - `lib/theme-water.ts` — ondas, paleta e camada Canvas da transição de água.
 - `lib/scramble.ts` — revelação letra a letra usada na troca de idioma.
 - `lib/contact.ts` — contrato do formulário: limites, validação, armadilha e detecção de bots.
+- `lib/contact-verify.ts` — o endereço existe? DNS (sempre) e verificação da caixa (opcional).
 - `lib/contact-delivery.ts` — entrega por Resend ou webhook, escolhida pelo ambiente.
 - `lib/water-change.ts` — corre a transição: copia a página, aplica a mudança e limpa tudo.
 - `lib/water-snapshot.ts` — cópia visual da página anterior por baixo da animação.

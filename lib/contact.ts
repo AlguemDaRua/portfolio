@@ -28,7 +28,13 @@ export const CONTACT_MIN_FILL_MS = 1_200;
 export const CONTACT_MAX_BODY_BYTES = 8_192;
 
 export type ContactField = "name" | "email" | "subject" | "message";
-type ContactErrorCode = "required" | "email" | "short" | "long";
+type ContactErrorCode =
+  | "required"
+  | "email"
+  | "short"
+  | "long"
+  | "undeliverable"
+  | "typo";
 export type ContactErrors = Partial<Record<ContactField, ContactErrorCode>>;
 
 export type ContactMessage = {

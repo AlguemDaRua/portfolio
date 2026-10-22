@@ -39,6 +39,7 @@ export function ContactForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [serverError, setServerError] = useState<ServerError | null>(null);
   const [honeypot, setHoneypot] = useState("");
+  const [suggestion, setSuggestion] = useState<string | null>(null);
   const openedAt = useRef(0);
   const sentRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -57,6 +58,7 @@ export function ContactForm() {
 
   const update = (field: ContactField, value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
+    setSuggestion(null);
     setErrors((current) => {
       if (!current[field]) return current;
       const next = { ...current };
@@ -106,6 +108,7 @@ export function ContactForm() {
         ok?: boolean;
         error?: string;
         fields?: ContactErrors;
+        suggestion?: string;
       };
 
       if (response.ok && result.ok) {
@@ -115,6 +118,11 @@ export function ContactForm() {
 
       setStatus("idle");
       setServerError(toServerError(result.error));
+      setSuggestion(
+        result.fields?.email === "typo" && result.suggestion
+          ? result.suggestion
+          : null,
+      );
       if (result.fields) {
         setErrors(result.fields);
         focusFirst(result.fields);
@@ -128,6 +136,7 @@ export function ContactForm() {
   const restart = () => {
     setValues(EMPTY);
     setErrors({});
+    setSuggestion(null);
     setServerError(null);
     setStatus("idle");
     openedAt.current = Date.now();
@@ -216,7 +225,21 @@ export function ContactForm() {
         />
         {errors.email ? (
           <span className="contact-error" id={`${id("email")}-error`}>
-            {fieldError("email")}
+            {errors.email === "typo" && suggestion ? (
+              <>
+                {copy.errors.typo.split("{suggestion}")[0]}
+                <button
+                  type="button"
+                  className="contact-fix"
+                  onClick={() => update("email", suggestion)}
+                >
+                  {suggestion}
+                </button>
+                {copy.errors.typo.split("{suggestion}")[1]}
+              </>
+            ) : (
+              fieldError("email")
+            )}
           </span>
         ) : null}
       </div>

@@ -128,6 +128,8 @@ export type ContactFormCopy = {
     email: string;
     short: string;
     long: string;
+    undeliverable: string;
+    typo: string;
     rate: string;
     unavailable: string;
     delivery: string;

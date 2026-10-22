@@ -104,6 +104,85 @@ test("a dead network is reported as a dead network", async ({ page }) => {
   );
 });
 
+test("a mistyped domain is named and repaired in one click", async ({ page }) => {
+  await page.route("**/api/contact", (route) =>
+    route.fulfill({
+      status: 422,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: false,
+        error: "validation",
+        fields: { email: "typo" },
+        suggestion: "hello@gmail.com",
+      }),
+    }),
+  );
+
+  await fill(page);
+  await page.locator('[name="email"]').fill("hello@gmial.com");
+  await page.getByRole("button", { name: "Send message" }).click();
+
+  const error = page.locator('[name="email"] ~ .contact-error');
+  await expect(error).toContainText("Did you mean");
+  await page.getByRole("button", { name: "hello@gmail.com" }).click();
+  await expect(page.locator('[name="email"]')).toHaveValue("hello@gmail.com");
+  await expect(error).toHaveCount(0);
+});
+
+test("a domain that cannot receive mail is refused in words anyone understands", async ({
+  page,
+}) => {
+  await page.route("**/api/contact", (route) =>
+    route.fulfill({
+      status: 422,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: false,
+        error: "validation",
+        fields: { email: "undeliverable" },
+      }),
+    }),
+  );
+
+  await fill(page);
+  await page.getByRole("button", { name: "Send message" }).click();
+
+  await expect(page.locator('[name="email"] ~ .contact-error')).toContainText(
+    "cannot receive mail",
+  );
+  await expect(page.locator('[name="message"]')).toHaveValue(/new product/);
+});
+
+test("the route never accepts an address nobody could answer", async ({
+  request,
+}) => {
+  const base = {
+    name: "Azam",
+    subject: "project",
+    message: "A proper message with more than twenty characters in it.",
+    elapsed: 9000,
+  };
+
+  // A domain with no MX and no host. Where the network can do DNS the route
+  // refuses it; where it cannot, the design says "let it through" and the
+  // answer is the honest 503. A 200 here would mean an unanswerable message
+  // was accepted, which is the one thing that must never happen.
+  for (const email of ["ghost@nao-existe-nada.invalid", "azam@gmial.com"]) {
+    const response = await request.post("/api/contact", {
+      data: { ...base, email },
+    });
+    expect([422, 503]).toContain(response.status());
+    if (response.status() === 422) {
+      const body = (await response.json()) as {
+        fields?: { email?: string };
+        suggestion?: string;
+      };
+      expect(["undeliverable", "typo"]).toContain(body.fields?.email);
+      if (body.fields?.email === "typo") expect(body.suggestion).toContain("@");
+    }
+  }
+});
+
 test("the route itself validates, refuses and ignores bots", async ({
   request,
 }) => {
