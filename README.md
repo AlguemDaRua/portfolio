@@ -88,9 +88,11 @@ Não há endereço em lado nenhum da página — nem no HTML, nem no bundle, nem
 
 | Variável | Para quê |
 | --- | --- |
-| `RESEND_API_KEY` + `CONTACT_TO` | [Resend](https://resend.com), gratuito até 3 000 e-mails/mês. No plano gratuito envia-se de `onboarding@resend.dev` para o endereço dono da conta. |
+| `RESEND_API_KEY` + `CONTACT_TO` | [Resend](https://resend.com), gratuito até 3 000 e-mails/mês (100/dia), sem cartão. O plano gratuito só entrega ao endereço dono da conta, por isso cria a conta com o endereço que queres receber e repete-o em `CONTACT_TO`. |
 | `CONTACT_FROM` | Opcional. Só com domínio verificado no Resend (`Portfolio <hello@dominio.com>`). |
 | `CONTACT_WEBHOOK` | Qualquer endpoint que aceite JSON (Zapier, Make, Formspree, Slack, Discord…). Recebe `{ name, email, subject, message, text }`. |
+
+**Resend em quatro passos, sem pagar nada:** criar conta em resend.com com o endereço de destino → **API Keys → Create API Key** (permissão de envio) → colar a chave em `RESEND_API_KEY` e o teu endereço em `CONTACT_TO` (Vercel: **Settings → Environment Variables**, ou `.env.local` se estiveres a correr o site na tua máquina) → voltar a publicar. O e-mail do visitante vai no `reply_to`, portanto responderes é um clique.
 
 Sem nenhuma variável definida a rota responde `503` e o formulário diz que o envio não está disponível — nunca finge que enviou. As variáveis estão documentadas em `.env.example` e configuram-se no Vercel em **Project → Settings → Environment Variables**.
 

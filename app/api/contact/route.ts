@@ -76,7 +76,10 @@ export async function POST(request: Request): Promise<Response> {
       return json({ ok: false, error: "unconfigured" }, 503);
     }
     return json({ ok: true, via });
-  } catch {
+  } catch (error) {
+    // Provider errors (a 403 from Resend, a dead webhook) belong in the logs,
+    // never in the page: the visitor gets one honest sentence.
+    console.error("[contact] delivery failed", error);
     return json({ ok: false, error: "delivery" }, 502);
   }
 }
