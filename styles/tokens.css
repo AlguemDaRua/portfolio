@@ -17,6 +17,8 @@
   --inverse-text: #ffffff;
   --shadow: rgba(22, 24, 29, 0.06);
   --shadow-lift: rgba(22, 24, 29, 0.1);
+  --rail-glow-core: rgba(47, 62, 214, 0.08);
+  --rail-glow-spill: rgba(47, 62, 214, 0.045);
   --card-bg: #17181d;
   --card-bg-soft: #1e2026;
   --card-line: rgba(255, 255, 255, 0.09);
@@ -38,13 +40,14 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --paper: #0d0e11;
-  --paper-raised: #14161b;
+  /* True black: every bit of light on the page comes from the navigation. */
+  --paper: #000000;
+  --paper-raised: #0d0f14;
   --text: #f4f4f0;
   --muted: #a6a9b2;
-  --line: #23262e;
+  --line: #1e2129;
   --accent: #9da8ff;
-  --soft: #14161b;
+  --soft: #101319;
   --strong: #fafaf6;
   --body-text: #c7cad2;
   --body-muted: #b3b7c0;
@@ -61,7 +64,9 @@
   --card-text: #f7f7f2;
   --card-pill: #fbfbf7;
   --card-pill-text: #1a1b20;
-  --accent-soft: rgba(157, 168, 255, 0.14);
+  --accent-soft: rgba(157, 168, 255, 0.12);
+  --rail-glow-core: rgba(199, 208, 255, 0.17);
+  --rail-glow-spill: rgba(146, 162, 255, 0.07);
 }
 
 @theme inline {

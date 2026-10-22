@@ -3,6 +3,7 @@
 import { Moon, Sun } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/context/ThemeContext";
+import { ScrambleText } from "@/components/ui/ScrambleText";
 
 export function ThemeToggle() {
   const { t } = useLanguage();
@@ -19,7 +20,7 @@ export function ThemeToggle() {
         onClick={() => changeTheme("light")}
       >
         <Sun aria-hidden="true" />
-        <span>{t.theme.light}</span>
+        <ScrambleText text={t.theme.light} />
       </button>
       <button
         type="button"
@@ -30,7 +31,7 @@ export function ThemeToggle() {
         onClick={() => changeTheme("dark")}
       >
         <Moon aria-hidden="true" />
-        <span>{t.theme.dark}</span>
+        <ScrambleText text={t.theme.dark} />
       </button>
     </div>
   );

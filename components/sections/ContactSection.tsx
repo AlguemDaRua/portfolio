@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check, Copy } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { ScrambleText } from "@/components/ui/ScrambleText";
 
 export function ContactSection() {
   const { t } = useLanguage();
@@ -42,16 +43,16 @@ export function ContactSection() {
       >
         <div className="page-wrap">
           <div className="contact-panel">
-            <span className="eyebrow">{t.contact.label}</span>
+            <ScrambleText className="eyebrow" text={t.contact.label} as="span" />
 
             <div className="contact-copy">
-              <h2 id="contact-title">{t.contact.title}</h2>
-              <p>{t.contact.text}</p>
+              <ScrambleText id="contact-title" text={t.contact.title} as="h2" />
+              <ScrambleText text={t.contact.text} as="p" />
             </div>
 
             <div className="contact-actions">
               <a className="email-link" href={`mailto:${t.contact.email}`}>
-                {t.contact.email}
+                <ScrambleText text={t.contact.email} />
                 <ArrowUpRight aria-hidden="true" />
               </a>
               <button
@@ -65,11 +66,14 @@ export function ContactSection() {
                 ) : (
                   <Copy aria-hidden="true" />
                 )}
-                <span>
-                  {copyState === "copied"
-                    ? t.contact.copied
-                    : t.contact.copyEmail}
-                </span>
+                <ScrambleText
+                  as="span"
+                  text={
+                    copyState === "copied"
+                      ? t.contact.copied
+                      : t.contact.copyEmail
+                  }
+                />
               </button>
             </div>
 
@@ -85,7 +89,11 @@ export function ContactSection() {
                   : ""}
             </p>
 
-            <p className="contact-note">{t.contact.availability}</p>
+            <ScrambleText
+              className="contact-note"
+              text={t.contact.availability}
+              as="p"
+            />
           </div>
         </div>
       </section>
@@ -99,7 +107,7 @@ export function ContactSection() {
           </span>
           Azam Usman
         </a>
-        <span>{t.contact.footer}</span>
+        <ScrambleText text={t.contact.footer} as="span" />
       </footer>
     </>
   );

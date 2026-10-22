@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { ScrambleText } from "@/components/ui/ScrambleText";
 
 const SECTIONS = [
   { id: "about", navKey: "about", num: "01" },
@@ -128,7 +129,7 @@ export function SideRail() {
         </span>
         <span className="rail-identity">
           <span className="rail-name">Azam Usman</span>
-          <span className="rail-role">{t.meta.role}</span>
+          <ScrambleText className="rail-role" text={t.meta.role} as="span" />
         </span>
       </a>
 
@@ -151,7 +152,11 @@ export function SideRail() {
             aria-current={activeSection === section.id ? "location" : undefined}
           >
             <span className="rail-number">{section.num}</span>
-            <span className="rail-label">{t.nav[section.navKey]}</span>
+            <ScrambleText
+              className="rail-label"
+              text={t.nav[section.navKey]}
+              as="span"
+            />
           </a>
         ))}
       </nav>

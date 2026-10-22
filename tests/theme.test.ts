@@ -14,6 +14,7 @@ import {
   WATER_DURATION_MS,
   WATER_IMPACT_MS,
 } from "../lib/theme-water";
+import { scrambleText } from "../lib/scramble";
 
 const rootDir = path.resolve(__dirname, "..");
 
@@ -101,7 +102,7 @@ test("Theme tokens are centralized and cover both color schemes", () => {
   );
 });
 
-test("One water engine drives the theme and the language", () => {
+test("One water engine drives the theme, and only the theme", () => {
   const revealStyles = readProjectFile("styles/water-transition.css");
   const accessibilityStyles = readProjectFile("styles/accessibility.css");
   const runner = readProjectFile("lib/water-change.ts");
@@ -144,8 +145,10 @@ test("One water engine drives the theme and the language", () => {
     provider,
     /document\.startViewTransition|root\.animate|navigator\.userAgent/,
   );
-  assert.match(language, /runWaterChange/);
-  assert.match(language, /flushSync\(\(\) => commitLocale\(nextLocale\)\)/);
+  // Words are not water: the language commits on the spot and the copy
+  // re-enters letter by letter, without a snapshot or a canvas.
+  assert.doesNotMatch(language, /runWaterChange|flushSync|createWaterReveal/);
+  assert.match(language, /commitLocale\(nextLocale\)/);
   assert.doesNotMatch(shell, /WaterOverlay|ThemePaintOverlay/);
   assert.match(accessibilityStyles, /prefers-reduced-motion:\s*reduce/);
   assert.match(nextConfig, /allowedDevOrigins:\s*\["\*\.e2b\.app"\]/);
@@ -162,6 +165,112 @@ test("One water engine drives the theme and the language", () => {
   // Seen from above: nothing falls through the page before the impact.
   assert.doesNotMatch(water, /dropDistance|dropRadius|fallProgress|DropOffset/);
   assert.doesNotMatch(water, /linearGradient\(/, "No motion streak in the air");
+});
+
+test("Switching language is a letter-by-letter reveal, not water", () => {
+  const provider = readProjectFile("context/LanguageContext.tsx");
+  const component = readProjectFile("components/ui/ScrambleText.tsx");
+  const scramble = readProjectFile("lib/scramble.ts");
+
+  assert.doesNotMatch(provider, /runWaterChange|createWaterReveal|flushSync/);
+  assert.match(component, /scrambleText\(element, text\)/);
+  assert.match(scramble, /prefers-reduced-motion:\s*reduce/);
+  assert.equal(
+    (scramble.match(/requestAnimationFrame\(/g) ?? []).length,
+    2,
+    "One scheduler: request and re-request, never a loop per word",
+  );
+  assert.match(scramble, /const runs = new Map/, "A single registry");
+
+  // Everything that shows translated copy takes part in the reveal.
+  for (const file of [
+    "components/layout/SideRail.tsx",
+    "components/sections/HeroSection.tsx",
+    "components/sections/AboutSection.tsx",
+    "components/sections/ProjectsSection.tsx",
+    "components/sections/SkillsSection.tsx",
+    "components/sections/ResumeSection.tsx",
+    "components/sections/ContactSection.tsx",
+    "components/ui/SectionHeading.tsx",
+    "components/ui/ThemeToggle.tsx",
+  ]) {
+    assert.match(
+      readProjectFile(file),
+      /ScrambleText/,
+      `${file} must reveal its copy letter by letter`,
+    );
+  }
+});
+
+test("The letter reveal keeps the layout, then lands on the exact copy", () => {
+  const target = "Do ecrã ao servidor.";
+  const frames: FrameRequestCallback[] = [];
+  const originalWindow = Reflect.get(globalThis, "window");
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    writable: true,
+    value: {
+      matchMedia: () => ({ matches: false }),
+      requestAnimationFrame: (callback: FrameRequestCallback) => {
+        frames.push(callback);
+        return frames.length;
+      },
+    },
+  });
+
+  try {
+    const element = {
+      textContent: "Do ecra ao servidor.",
+      isConnected: true,
+    } as unknown as HTMLElement;
+
+    const dispose = scrambleText(element, target);
+    assert.equal(frames.length, 1, "Every word shares one frame");
+
+    const now = performance.now();
+    frames[0](now + 80);
+    assert.equal(
+      element.textContent?.length,
+      target.length,
+      "Glyphs replace letters one for one, so nothing moves",
+    );
+    assert.match(element.textContent ?? "", / /, "Spaces survive the reveal");
+    assert.notEqual(
+      element.textContent,
+      target,
+      "Mid-flight the copy is still settling",
+    );
+
+    frames[frames.length - 1](now + 10_000);
+    assert.equal(element.textContent, target, "The reveal lands exactly");
+
+    dispose();
+    assert.equal(element.textContent, target, "Disposing settles the copy");
+
+    const reduced = {
+      textContent: "antigo",
+      isConnected: true,
+    } as unknown as HTMLElement;
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      writable: true,
+      value: {
+        matchMedia: () => ({ matches: true }),
+        requestAnimationFrame: () => 0,
+      },
+    });
+    scrambleText(reduced, "novo");
+    assert.equal(
+      reduced.textContent,
+      "novo",
+      "Reduced motion gets the words, not the show",
+    );
+  } finally {
+    if (originalWindow)
+      Object.defineProperty(globalThis, "window", originalWindow);
+    else Reflect.deleteProperty(globalThis, "window");
+  }
 });
 
 test("The water lands in the exact centre and comes from the arriving theme", () => {
@@ -540,6 +649,30 @@ test("Reveal lifecycle: clipped live page, 60 fps canvas, fully released", () =>
       Object.defineProperty(globalThis, "document", originalDocument);
     else Reflect.deleteProperty(globalThis, "document");
   }
+});
+
+test("Dark mode is true black and the navigation is the light source", () => {
+  const tokens = readProjectFile("styles/tokens.css");
+  const base = readProjectFile("styles/base.css");
+  const navigation = readProjectFile("styles/navigation.css");
+  const dark = tokens.slice(tokens.indexOf(':root[data-theme="dark"]'));
+
+  assert.match(dark, /--paper:\s*#000000/, "Dark mode is pure black");
+  assert.match(dark, /--rail-glow-core:/);
+  assert.match(dark, /--rail-glow-spill:/);
+
+  // One light source: the pool behind the rail, nothing else on the canvas.
+  assert.match(base, /at 9% 50%/);
+  assert.doesNotMatch(base, /at 68% -12%|at 8% 108%/);
+  // The compact mobile bar keeps the same single source, moved to the top.
+  assert.match(base, /@media \(max-width: 980px\)[\s\S]{0,400}at 50% 0%/);
+
+  // Rows grow from their own left edge, so the pointer stays inside.
+  assert.match(navigation, /transform-origin:\s*left center/);
+  assert.match(
+    navigation,
+    /\.rail-nav a:hover[\s\S]{0,200}transform:\s*scale\(1\.\d+\)/,
+  );
 });
 
 test("Global CSS is split into named style responsibilities", () => {

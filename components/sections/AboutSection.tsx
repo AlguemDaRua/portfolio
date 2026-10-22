@@ -1,6 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/context/LanguageContext";
+import { ScrambleText } from "@/components/ui/ScrambleText";
 
 export function AboutSection() {
   const { t } = useLanguage();
@@ -14,19 +15,19 @@ export function AboutSection() {
       <div className="page-wrap">
         <div className="section-head">
           <div>
-            <span className="eyebrow">{t.about.label}</span>
-            <h2 id="about-title">{t.about.title}</h2>
+            <ScrambleText className="eyebrow" text={t.about.label} as="span" />
+            <ScrambleText id="about-title" text={t.about.title} as="h2" />
           </div>
-          <p className="about-lead">{t.about.text}</p>
+          <ScrambleText className="about-lead" text={t.about.text} as="p" />
         </div>
 
         <dl className="about-facts">
           {t.about.facts.map((fact) => (
             <div key={fact.label}>
-              <dt>{fact.label}</dt>
+              <ScrambleText text={fact.label} as="dt" />
               <dd>
-                {fact.value}
-                <small>{fact.note}</small>
+                <ScrambleText text={fact.value} as="span" />
+                <ScrambleText text={fact.note} as="small" />
               </dd>
             </div>
           ))}

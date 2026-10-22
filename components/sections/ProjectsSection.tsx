@@ -2,6 +2,7 @@
 
 import { useLanguage } from "@/context/LanguageContext";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { ScrambleText } from "@/components/ui/ScrambleText";
 
 export function ProjectsSection() {
   const { t } = useLanguage();
@@ -28,27 +29,41 @@ export function ProjectsSection() {
               </span>
 
               <div className="project-copy">
-                <h3>{project.name}</h3>
-                <p className="project-category">{project.category}</p>
-                <p className="project-description">{project.description}</p>
+                <ScrambleText text={project.name} as="h3" />
+                <ScrambleText
+                  className="project-category"
+                  text={project.category}
+                  as="p"
+                />
+                <ScrambleText
+                  className="project-description"
+                  text={project.description}
+                  as="p"
+                />
                 <ul className="project-tags">
                   {project.tags.map((tag) => (
-                    <li key={tag}>{tag}</li>
+                    <li key={tag}>
+                      <ScrambleText text={tag} />
+                    </li>
                   ))}
                 </ul>
               </div>
 
               <div className="project-meta">
-                <span>{project.context}</span>
-                <span className="project-year">{project.year}</span>
+                <ScrambleText text={project.context} as="span" />
+                <ScrambleText
+                  className="project-year"
+                  text={project.year}
+                  as="span"
+                />
               </div>
             </article>
           ))}
         </div>
 
         <div className="more-work">
-          <span>{t.work.moreLabel}</span>
-          <p>{t.work.moreProjects}</p>
+          <ScrambleText text={t.work.moreLabel} as="span" />
+          <ScrambleText text={t.work.moreProjects} as="p" />
         </div>
       </div>
     </section>

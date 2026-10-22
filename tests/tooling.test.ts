@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -86,4 +86,33 @@ test("Lint accepts the automatic JSX runtime, CSS imports and labelled control g
   `);
   assert.equal(status, 0, JSON.stringify(report.diagnostics));
   assert.deepEqual(report.diagnostics, []);
+});
+
+test("CI runs in phases, on main only, with Vercel scoped to the same branch", () => {
+  const workflow = readFileSync(join(root, ".github/workflows/ci.yml"), "utf8");
+
+  assert.match(workflow, /branches:\s*\[main\]/, "Only main triggers CI");
+  assert.doesNotMatch(workflow, /arena\//, "Working branches cost no minutes");
+
+  const jobs = ["quality", "test", "build", "e2e", "deploy"];
+  for (const job of jobs) {
+    assert.match(workflow, new RegExp(`^ {2}${job}:`, "m"), `${job} exists`);
+  }
+  assert.match(workflow, /needs: quality/, "Later phases wait for the cheap ones");
+  assert.match(workflow, /needs: build/, "Browsers run against the built output");
+
+  const vercel = JSON.parse(readFileSync(join(root, "vercel.json"), "utf8")) as {
+    git: { deploymentEnabled: Record<string, boolean> };
+    installCommand: string;
+  };
+  assert.deepEqual(vercel.git.deploymentEnabled, { main: true });
+  assert.match(vercel.installCommand, /npm ci/);
+});
+
+test("Every route has a fallback that still looks like the portfolio", () => {
+  for (const route of ["error", "global-error", "not-found"]) {
+    const source = readFileSync(join(root, `app/${route}.tsx`), "utf8");
+    assert.match(source, /status-page|style=/, `${route} renders a real page`);
+    assert.match(source, /mailto:|Voltar|Try again/, `${route} helps the visitor`);
+  }
 });

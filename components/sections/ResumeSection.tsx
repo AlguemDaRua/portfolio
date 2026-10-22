@@ -3,6 +3,7 @@
 import { ArrowUpRight, Download, FileText } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { ScrambleText } from "@/components/ui/ScrambleText";
 
 export function ResumeSection() {
   const { t } = useLanguage();
@@ -27,14 +28,14 @@ export function ResumeSection() {
               <div className="resume-card-header">
                 <span className="resume-document">
                   <FileText aria-hidden="true" />
-                  <span className="resume-badge">{item.badge}</span>
+                  <ScrambleText className="resume-badge" text={item.badge} as="span" />
                 </span>
-                <span className="resume-size">{item.fileSize}</span>
+                <ScrambleText className="resume-size" text={item.fileSize} as="span" />
               </div>
 
               <div>
-                <h3>{item.title}</h3>
-                <p>{item.description}</p>
+                <ScrambleText text={item.title} as="h3" />
+                <ScrambleText text={item.description} as="p" />
               </div>
 
               <div className="resume-actions">
@@ -45,7 +46,7 @@ export function ResumeSection() {
                   className="resume-btn primary"
                 >
                   <Download aria-hidden="true" />
-                  <span>{item.downloadLabel}</span>
+                  <ScrambleText text={item.downloadLabel} as="span" />
                 </a>
                 <a
                   href={item.filePath}
@@ -54,7 +55,7 @@ export function ResumeSection() {
                   rel="noopener noreferrer"
                   className="resume-btn secondary"
                 >
-                  <span>{item.viewLabel}</span>
+                  <ScrambleText text={item.viewLabel} as="span" />
                   <ArrowUpRight aria-hidden="true" />
                 </a>
               </div>

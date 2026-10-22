@@ -1,6 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/context/LanguageContext";
+import { ScrambleText } from "@/components/ui/ScrambleText";
 
 const PILL_SLOTS = ["a", "b", "c"] as const;
 
@@ -22,8 +23,8 @@ export function AuCard() {
         <span />
       </div>
       <div className="au-card-head">
-        <span>{t.hero.cardLabel}</span>
-        <span>{t.hero.cardStamp}</span>
+        <ScrambleText text={t.hero.cardLabel} />
+        <ScrambleText text={t.hero.cardStamp} />
       </div>
       <div className="au-mark">
         <span className="au-wordmark">
@@ -36,7 +37,7 @@ export function AuCard() {
           key={label}
           className={`au-pill au-pill-${PILL_SLOTS[index % PILL_SLOTS.length]}`}
         >
-          {label}
+          <ScrambleText text={label} />
         </span>
       ))}
     </figure>

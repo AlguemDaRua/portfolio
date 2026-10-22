@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUpRight, FileText } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { AuCard } from "@/components/ui/AuCard";
+import { ScrambleText } from "@/components/ui/ScrambleText";
 
 export function HeroSection() {
   const { t } = useLanguage();
@@ -10,34 +11,40 @@ export function HeroSection() {
   return (
     <section className="hero page-wrap" id="top" aria-labelledby="hero-title">
       <div className="hero-meta">
-        <span>{t.meta.edition}</span>
-        <span>{t.meta.location}</span>
+        <ScrambleText text={t.meta.edition} />
+        <ScrambleText text={t.meta.location} />
       </div>
 
       <div className="hero-grid">
         <div className="hero-copy">
           <span className="status-pill">
             <span className="status-dot" aria-hidden="true" />
-            {t.hero.available}
+            <ScrambleText text={t.hero.available} />
           </span>
 
           <h1 id="hero-title">
-            <span className="hero-title-line">{t.hero.title}</span>
-            <span className="hero-title-line hero-title-accent">
-              {t.hero.titleAccent}
-            </span>
+            <ScrambleText
+              className="hero-title-line"
+              text={t.hero.title}
+              as="span"
+            />
+            <ScrambleText
+              className="hero-title-line hero-title-accent"
+              text={t.hero.titleAccent}
+              as="span"
+            />
           </h1>
 
-          <p className="hero-text">{t.hero.text}</p>
+          <ScrambleText className="hero-text" text={t.hero.text} as="p" />
 
           <div className="hero-actions">
             <a className="btn-primary" href="#work">
-              {t.hero.work}
+              <ScrambleText text={t.hero.work} />
               <ArrowUpRight aria-hidden="true" />
             </a>
             <a className="btn-ghost" href="#resume">
               <FileText aria-hidden="true" />
-              {t.hero.resume}
+              <ScrambleText text={t.hero.resume} />
             </a>
           </div>
         </div>
@@ -48,9 +55,9 @@ export function HeroSection() {
       </div>
 
       <div className="hero-bottom">
-        <span>{t.hero.focus}</span>
+        <ScrambleText text={t.hero.focus} />
         <a className="hero-scroll" href="#about">
-          {t.hero.scroll}
+          <ScrambleText text={t.hero.scroll} />
           <ArrowDown aria-hidden="true" />
         </a>
       </div>

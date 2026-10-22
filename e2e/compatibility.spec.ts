@@ -70,27 +70,46 @@ test("the water reveal works without View Transitions and keeps the exact old/ne
   await expectCleanTheme(page, "light");
 });
 
-test("switching language runs the same water, keeping the old words in the copy", async ({
+test("switching language reveals the words letter by letter, with no water", async ({
   page,
 }) => {
   const heading = live(page).locator("h1");
-  const before = (await heading.innerText()).trim();
 
   await live(page).getByRole("button", { name: "English", exact: true }).click();
-  const snapshot = page.locator(".water-snapshot");
-  await expect(snapshot).toHaveCount(1);
-  await expect(snapshot.locator("h1")).toContainText(before.split("\n")[0]);
-  await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(heading).toContainText("From screen");
-  await expect(snapshot).toHaveCount(0);
-  await expect(page.locator("html")).not.toHaveClass(/water-transitioning/);
+
+  // Words are not water: no copy layer, no canvas, no clip.
+  await expect(page.locator(".water-snapshot")).toHaveCount(0);
   await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator("html")).not.toHaveClass(/water-transitioning/);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(live(page)).not.toHaveCSS("clip-path", /circle/);
+
+  // The copy is never blank while the letters settle, and the heading keeps
+  // its accessible name throughout.
+  const samples = await page.evaluate(async () => {
+    const node = document.querySelector(".site-shell h1");
+    const seen: string[] = [];
+    for (let frame = 0; frame < 14; frame += 1) {
+      seen.push(node?.textContent?.trim() ?? "");
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    return seen;
+  });
+  expect(samples.every((sample) => sample.length > 0)).toBe(true);
+
+  await expect(heading).toContainText("From screen");
+  await expect(heading).toContainText("to server.");
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Selected work" }),
+  ).toBeVisible();
 
   await live(page).getByRole("button", { name: "Português", exact: true }).click();
-  await expect(snapshot).toHaveCount(1);
-  await expect(snapshot.locator("h1")).toContainText("From screen");
-  await expect(heading).toContainText(before.split("\n")[0]);
-  await expect(snapshot).toHaveCount(0);
+  await expect(page.locator("html")).toHaveAttribute("lang", "pt");
+  await expect(page.locator(".water-snapshot")).toHaveCount(0);
+  await expect(heading).toContainText("Do ecrã");
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Trabalho seleccionado" }),
+  ).toBeVisible();
 });
 
 for (const width of [390, 1440]) {

@@ -53,6 +53,30 @@ Esta migração remove a cadeia antiga `eslint-config-next → fast-glob → mic
 
 As exceções são intencionais: o JSX automático não exige `React` no scope; CSS pode ser importado pelos seus efeitos; grupos de botões podem usar ARIA sem virar formulários. Apenas `SideRail.tsx` permite `onBlur` no `aside`, para fechar o menu quando o foco sai — não para tornar o contentor clicável. As restantes regras de interação/acessibilidade mantêm-se ativas.
 
+## CI/CD e deploy
+
+Tudo o que corre automaticamente parte de **`main`**. Branches de trabalho não gastam minutos de CI nem criam deploys de pré-visualização.
+
+```text
+1 · Tipos, lint e dependências   type-check, oxlint, npm audit --omit=dev --audit-level=high
+2 · Testes de unidade            tsx --test
+3 · Build de produção            next build  (artefacto reutilizado)
+4 · Browser                      Playwright/Chromium contra esse build
+5 · Deploy                       pedido ao Vercel, só depois de 2 e 4 passarem
+```
+
+- As fases encadeiam-se com `needs`: uma falha na fase 1 não deixa correr o build nem os browsers. `concurrency` cancela execuções antigas do mesmo ref.
+- A matriz completa (Firefox + WebKit) fica disponível em **Actions → CI → Run workflow**, com a opção `browsers`. Não corre sozinha para poupar recursos.
+- `vercel.json` desativa deploys de outras branches (`git.deploymentEnabled`), fixa `npm ci --engine-strict=false` como instalação, acrescenta cabeçalhos de segurança e cache longo para fontes e imagens.
+- O Vercel publica `main` pela integração Git. Para o deploy só acontecer **depois** dos testes, cria um Deploy Hook e guarda-o no segredo `VERCEL_DEPLOY_HOOK`: a fase 5 passa a ser a única porta de entrada (sem o segredo, a fase apenas informa e sai com sucesso).
+
+### Tratamento de erros
+
+- `app/error.tsx` — fronteira de erro da rota: mensagem bilingue, botão para tentar de novo e contacto.
+- `app/global-error.tsx` — fallback quando o próprio layout falha (traz o seu `<html>`/`<body>` e estilos inline, porque o CSS global pode não existir).
+- `app/not-found.tsx` — 404 com o mesmo desenho, marcado `noindex`.
+- Os erros continuam a aparecer na consola e nos *runtime logs* do Vercel; não há serviço externo de monitorização.
+
 ## Estrutura
 
 - `app/` — rotas Next.js, metadados e entrada dos estilos globais.
@@ -62,6 +86,7 @@ As exceções são intencionais: o JSX automático não exige `React` no scope; 
 - `context/` — estado persistente do tema e do idioma.
 - `data/` — conteúdo bilingue e tipos.
 - `lib/theme-water.ts` — ondas, paleta e camada Canvas da transição de água.
+- `lib/scramble.ts` — revelação letra a letra usada na troca de idioma.
 - `lib/water-change.ts` — corre a transição: copia a página, aplica a mudança e limpa tudo.
 - `lib/water-snapshot.ts` — cópia visual da página anterior por baixo da animação.
 - `styles/` — tokens, base, navegação, secções, animação do tema e acessibilidade/impressão.
@@ -82,17 +107,21 @@ Antes de publicar, testar PT/EN e claro/escuro entre 320px e desktop, navegaçã
 
 ## Tema claro/escuro e idioma
 
-A preferência inicial respeita o tema do sistema e é carregada antes da primeira pintura da página. Em navegadores compatíveis, tanto a troca de tema como a troca de idioma são reveladas por **uma onda de água vista de cima**: no centro exato do viewport nasce um ponto de impacto, e dali partem **ondas concêntricas** que se propagam em tempo real até às margens. Não há gota a cair através da página — é uma superfície vista de cima, e a primeira frame já abre a água. Duração total: **900 ms**.
+A preferência inicial respeita o tema do sistema e é carregada antes da primeira pintura da página. Em navegadores compatíveis, a troca de tema é revelada por **uma onda de água vista de cima**: no centro exato do viewport nasce um ponto de impacto, e dali partem **ondas concêntricas** que se propagam em tempo real até às margens. Não há gota a cair através da página — é uma superfície vista de cima, e a primeira frame já abre a água. Duração total: **900 ms**.
+
+O **idioma não usa água**: PT ↔ EN troca as palavras na hora e cada texto volta a entrar **letra a letra** (`lib/scramble.ts` + `components/ui/ScrambleText.tsx`). Um único `requestAnimationFrame` serve a página inteira, as letras mantêm o comprimento e o espaçamento originais (nada salta de linha) e um pequeno desfasamento faz a leitura descer pela página.
 
 ### Como funciona
 
-- `ThemeToggle` e `LanguageToggle` chamam `runWaterChange`, sem coordenadas do botão nem alterações na composição das secções.
+- `ThemeToggle` chama `runWaterChange`, sem coordenadas do botão nem alterações na composição das secções. `LanguageToggle` só confirma o idioma: o efeito é o texto.
 - `lib/water-snapshot.ts` cria uma cópia visual temporária da página **no estado anterior** (tema antigo, palavras antigas), fixando os tokens computados. A cópia fica por baixo da página viva, é `inert`, `aria-hidden`, não interceta cliques e não duplica IDs. A posição do conteúdo, da nav fixa e do cabeçalho sticky é preservada, mesmo com a página deslocada.
 - `lib/water-change.ts` faz o commit do novo estado na árvore React real, por cima dessa cópia, e garante watchdog, listeners e limpeza. Nenhuma inversão de cores é usada.
 - A revelação é um **`clip-path: circle()`** aplicado à página viva: o círculo cresce a partir do centro e descobre o estado novo, deixando a cópia antiga à vista à volta. Um clip é a forma mais barata que um browser consegue animar; uma máscara de Canvas obrigava a codificar uma imagem por frame e cortava a fluidez para menos de metade.
 - `lib/theme-water.ts` desenha a água num **Canvas 2D fora do DOM**, de resolução completa (até 1,5× DPR), a cada frame: o clarão e o anel do impacto, os salpicos radiais, a frente e as ondulações que viajam com ela. Tudo são círculos (`arc`), por isso uma frame custa poucos traços.
 - **Cor do tema que chega:** a água não tem cor própria. A frente, as ondas e os salpicos usam os neutros do tema de destino — água escura quando a página vai escurecer, água clara quando vai iluminar. As ondulações à frente da frente leem-se sobre a página que sai; as que ficam para trás leem-se sobre a que já chegou. Na troca de idioma não há tema novo, por isso a água usa os tons da própria página.
 - **Suavidade:** a frente arranca depressa e desacelera, com uma curva quadrática contínua (`1.45t − 0.45t²`) em vez de um salto; o clip e o brilho são atualizados a cada frame e decaem de forma contínua até zero. Não existe fase de queda nem espera inicial: a primeira frame já abre a superfície.
+- **Luz só da navegação:** o fundo escuro é preto puro. A única luz da página nasce atrás da barra lateral (`--rail-glow-core` / `--rail-glow-spill`) e espalha-se suavemente para a direita; no tema claro é a mesma ideia, muito mais discreta. Abaixo dos 980px a barra passa a topo e o brilho acompanha-a, sem nunca virar uma segunda fonte de luz.
+- **Navegação:** cada item cresce 6% a partir da própria margem esquerda no hover/foco, o que dá mais área de leitura sem empurrar o cursor para fora da linha.
 - **Garantia de cobertura:** o raio máximo é a diagonal da viewport com 6% de folga, por isso o último frame cobre sempre os cantos, testado de 1×1 a 4000×300. Nesse frame o clip é removido, sem “pop”.
 - **A água nunca anda para trás:** o raio é monotónico e o clip é substituído, nunca recriado. O Canvas, os listeners e a cópia são libertados no fim, em interrupções e em erros.
 - O clip é aplicado diretamente a um **elemento HTML normal**, com `clip-path` e o equivalente `-webkit-clip-path`. Não depende de `document.startViewTransition()`, animação de pseudo-elementos, deteção do nome do browser ou `mix-blend-mode: difference`.
@@ -107,12 +136,13 @@ O objetivo é **compatibilidade funcional com melhoria progressiva**, não garan
 | --- | --- |
 | Canvas 2D e `clip-path` | Impacto, frente e ondas em ambos os sentidos, independentemente de existir View Transitions |
 | Movimento reduzido ou separador oculto | Mudança de tema ou idioma sem animação |
+| Idioma (PT ↔ EN) | Palavras trocadas na hora e reveladas letra a letra; sem cópia, sem Canvas, sem clip |
 | `clip-path`/Canvas indisponíveis ou contexto 2D bloqueado | Mudança direta, sem deixar uma cópia a tapar a página |
 | `localStorage` bloqueado | Tema e idioma funcionam na sessão, sem prometer persistência |
 | Clipboard indisponível/negado | Mensagem de erro; endereço selecionável e ligação `mailto:` continuam disponíveis |
 | Unidades `svh`/`dvh` indisponíveis | Dimensões alternativas em `vh` |
 
-Redimensionar, deslocar a página, ocultar o separador ou ativar movimento reduzido durante o efeito termina a animação no estado solicitado. Cliques sucessivos invalidam callbacks antigos: prevalece a última escolha, e uma troca de idioma a meio de uma troca de tema assenta a primeira antes de começar a segunda.
+Redimensionar, deslocar a página, ocultar o separador ou ativar movimento reduzido durante a água termina a animação no estado solicitado. Cliques sucessivos no tema invalidam callbacks antigos: prevalece a última escolha. Uma troca de idioma nunca espera pela água — as letras entram por cima do estado que já foi confirmado.
 
 ### Testes entre motores
 
@@ -125,8 +155,8 @@ npm run test:browser
 npm run test:browser -- --project=firefox
 ```
 
-O Playwright inicia o build de produção na porta 3100. `PLAYWRIGHT_BASE_URL` permite usar um servidor local já iniciado (fora de CI). A CI executa projetos separados para Chromium, Firefox e WebKit, além dos testes unitários/build.
+O Playwright inicia o build de produção na porta 3100. `PLAYWRIGHT_BASE_URL` permite usar um servidor local já iniciado (fora de CI). Em `main`, a CI corre sempre Chromium; Firefox e WebKit correm na matriz completa quando alguém os pede no GitHub Actions (`.github/workflows/ci.yml`).
 
-`tests/theme.test.ts` verifica a origem central, a paleta neutra do tema de destino, a desaceleração das ondas, a monotonia do raio, a cobertura final dos cantos em vários viewports, o clip a cada frame e a limpeza de recursos. `e2e/compatibility.spec.ts` verifica a animação **com View Transitions removido**, a troca de idioma pela mesma água, separação dos tokens, alinhamento desktop/mobile após scroll, clip final, cliques rápidos, movimento reduzido, redimensionamento, falhas de APIs, idiomas, menu e PDFs.
+`tests/theme.test.ts` verifica a origem central, a paleta neutra do tema de destino, a desaceleração das ondas, a monotonia do raio, a cobertura final dos cantos em vários viewports, o clip a cada frame, a limpeza de recursos e a revelação letra a letra (comprimento, espaços, movimento reduzido e palavra final). `e2e/compatibility.spec.ts` verifica a animação **com View Transitions removido**, a troca de idioma sem água e sem cópia, separação dos tokens, alinhamento desktop/mobile após scroll, clip final, cliques rápidos, movimento reduzido, redimensionamento, falhas de APIs, idiomas, menu e PDFs.
 
 Testar os três motores reduz regressões, mas não certifica todas as versões de Zen, Safari/iOS ou browsers modificados. Confirmar também no browser/dispositivo real, especialmente com extensões e proteções de privacidade que possam bloquear Canvas.

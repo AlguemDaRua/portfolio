@@ -7,10 +7,8 @@ import React, {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { flushSync } from "react-dom";
 import { portfolioContent } from "@/data/content";
 import type { Locale, TranslationContent } from "@/data/types";
-import { documentTheme, runWaterChange } from "@/lib/water-change";
 
 interface LanguageContextValue {
   locale: Locale;
@@ -83,22 +81,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     getServerLocaleSnapshot,
   );
 
-  const setLocale = useCallback(
-    (nextLocale: Locale) => {
-      if (nextLocale === getLocaleSnapshot()) return;
-
-      // The language change runs through the same water as the theme: the copy
-      // keeps the old words while the ripples reveal the new ones. No theme
-      // changes, so the water borrows the tones of the page itself.
-      const theme = documentTheme();
-      runWaterChange({
-        apply: () => flushSync(() => commitLocale(nextLocale)),
-        departing: theme,
-        arriving: theme,
-      });
-    },
-    [],
-  );
+  // Switching language commits immediately; the copy then re-enters letter by
+  // letter on its own (`ScrambleText`), so the page never moves and no water
+  // runs for words alone.
+  const setLocale = useCallback((nextLocale: Locale) => {
+    if (nextLocale === getLocaleSnapshot()) return;
+    commitLocale(nextLocale);
+  }, []);
 
   return (
     <LanguageContext.Provider
