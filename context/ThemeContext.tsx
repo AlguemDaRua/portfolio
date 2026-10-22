@@ -8,13 +8,8 @@ import React, {
   useSyncExternalStore,
 } from "react";
 import { flushSync } from "react-dom";
-import { createThemeSnapshot, type ThemeSnapshot } from "@/lib/theme-snapshot";
-import {
-  createWaterReveal,
-  createWaterTransition,
-  type ThemeMode,
-  WATER_DURATION_MS,
-} from "@/lib/theme-water";
+import type { ThemeMode } from "@/lib/theme-water";
+import { cancelWaterChange, runWaterChange } from "@/lib/water-change";
 
 interface ThemeContextValue {
   theme: ThemeMode;
@@ -24,16 +19,12 @@ interface ThemeContextValue {
 const THEME_STORAGE_KEY = "azam-portfolio-theme";
 const themeListeners = new Set<() => void>();
 
-let activeTransitionVersion = 0;
+/** The theme being animated towards, so a second click cannot restart it. */
 let activeTarget: ThemeMode | null = null;
-let disposeActiveTransition: (() => void) | null = null;
 
 function cancelThemeTransition() {
-  // Invalidate completion callbacks from any previous water session.
-  activeTransitionVersion += 1;
-  disposeActiveTransition?.();
-  disposeActiveTransition = null;
   activeTarget = null;
+  cancelWaterChange();
 }
 
 function readStoredTheme(): ThemeMode | null {
@@ -120,16 +111,6 @@ function applyTheme(theme: ThemeMode) {
   notifyThemeListeners();
 }
 
-function supportsWaterMask(): boolean {
-  if (typeof CSS === "undefined" || typeof CSS.supports !== "function")
-    return false;
-
-  return (
-    CSS.supports("mask-image", "linear-gradient(black, black)") ||
-    CSS.supports("-webkit-mask-image", "linear-gradient(black, black)")
-  );
-}
-
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -142,86 +123,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const changeTheme = useCallback((nextTheme: ThemeMode) => {
     if (nextTheme === (activeTarget ?? getThemeSnapshot())) return;
 
-    cancelThemeTransition();
-    const root = document.documentElement;
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (motion.matches || document.hidden || !supportsWaterMask()) {
-      applyTheme(nextTheme);
-      return;
-    }
+    const departingTheme = getThemeSnapshot();
 
-    const source = document.querySelector<HTMLElement>(".site-shell");
-    if (!source) {
-      applyTheme(nextTheme);
-      return;
-    }
+    // One water engine for both switches: the old page is copied, the new
+    // theme is committed underneath it, and the ripples erase the copy.
+    const { animated } = runWaterChange({
+      apply: () => flushSync(() => applyTheme(nextTheme)),
+      departing: departingTheme,
+      arriving: nextTheme,
+      onSettle: () => {
+        if (activeTarget === nextTheme) activeTarget = null;
+      },
+    });
 
-    const version = activeTransitionVersion;
-    let snapshot: ThemeSnapshot | null = null;
-    let reveal: ReturnType<typeof createWaterReveal>;
-    root.classList.add("theme-transitioning");
-    try {
-      snapshot = createThemeSnapshot(source);
-      reveal = createWaterReveal(
-        createWaterTransition(nextTheme, root.clientWidth, root.clientHeight),
-        snapshot.element,
-      );
-    } catch {
-      snapshot?.dispose();
-      root.classList.remove("theme-transitioning");
-      applyTheme(nextTheme);
-      return;
-    }
-    activeTarget = nextTheme;
-
-    const finish = () => {
-      if (version !== activeTransitionVersion) return;
-      cancelThemeTransition();
-      // Keep the requested theme even if the water was interrupted or failed.
-      applyTheme(nextTheme);
-    };
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
-    const onScroll = () => {
-      // A pending scroll event from focusing/clicking the toggle can arrive
-      // after setup. Only invalidate the copy if its coordinates changed.
-      if (window.scrollX !== scrollX || window.scrollY !== scrollY) finish();
-    };
-    const onVisibilityChange = () => {
-      if (document.hidden) finish();
-    };
-    const onMotionChange = () => {
-      if (motion.matches) finish();
-    };
-    const watchdog = window.setTimeout(
-      finish,
-      WATER_DURATION_MS + 2_000,
-    );
-    window.addEventListener("resize", finish);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    motion.addEventListener("change", onMotionChange);
-
-    disposeActiveTransition = () => {
-      reveal.dispose();
-      snapshot?.dispose();
-      window.clearTimeout(watchdog);
-      window.removeEventListener("resize", finish);
-      window.removeEventListener("scroll", onScroll);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      motion.removeEventListener("change", onMotionChange);
-      root.classList.remove("theme-transitioning");
-    };
-
-    // The old copy already covers the viewport. Commit the actual React tree
-    // underneath it, then peel it away with a drop of water. No UA sniffing,
-    // View Transitions API, or WAAPI pseudo-element support is required.
-    try {
-      flushSync(() => applyTheme(nextTheme));
-      reveal.play(finish);
-    } catch {
-      finish();
-    }
+    activeTarget = animated ? nextTheme : null;
   }, []);
 
   const value = useMemo(() => ({ theme, changeTheme }), [theme, changeTheme]);

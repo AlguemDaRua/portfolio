@@ -9,8 +9,8 @@ const setTheme = (page: Page, dark: boolean) =>
 
 async function expectCleanTheme(page: Page, theme: string) {
   await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-  await expect(page.locator(".theme-snapshot")).toHaveCount(0);
-  await expect(page.locator("html")).not.toHaveClass(/theme-transitioning/);
+  await expect(page.locator(".water-snapshot")).toHaveCount(0);
+  await expect(page.locator("html")).not.toHaveClass(/water-transitioning/);
   await expect(page.locator("canvas")).toHaveCount(0);
 }
 
@@ -39,7 +39,7 @@ test("the water reveal works without View Transitions and keeps the exact old/ne
     .locator("html")
     .evaluate((root) => getComputedStyle(root).getPropertyValue("--text"));
   await setTheme(page, true);
-  const snapshot = page.locator(".theme-snapshot");
+  const snapshot = page.locator(".water-snapshot");
   await expect(snapshot).toHaveCount(1);
   await expect(snapshot).toHaveAttribute("aria-hidden", "true");
   await expect(snapshot).toHaveAttribute("inert", "");
@@ -53,9 +53,12 @@ test("the water reveal works without View Transitions and keeps the exact old/ne
       .locator("html")
       .evaluate((root) => getComputedStyle(root).getPropertyValue("--text")),
   ).not.toBe(oldToken);
+  // The live page is clipped to a growing circle; the copy shows around it.
   await expect
-    .poll(() => snapshot.evaluate((node) => getComputedStyle(node).maskImage))
-    .toContain("data:image/png");
+    .poll(() =>
+      live(page).evaluate((node) => getComputedStyle(node).clipPath),
+    )
+    .toMatch(/^circle\([\d.]+px at /);
   expect(
     await page.locator("[id]").evaluateAll((nodes) => {
       const ids = nodes.map((node) => node.id);
@@ -65,6 +68,29 @@ test("the water reveal works without View Transitions and keeps the exact old/ne
   await expectCleanTheme(page, "dark");
   await setTheme(page, false);
   await expectCleanTheme(page, "light");
+});
+
+test("switching language runs the same water, keeping the old words in the copy", async ({
+  page,
+}) => {
+  const heading = live(page).locator("h1");
+  const before = (await heading.innerText()).trim();
+
+  await live(page).getByRole("button", { name: "English", exact: true }).click();
+  const snapshot = page.locator(".water-snapshot");
+  await expect(snapshot).toHaveCount(1);
+  await expect(snapshot.locator("h1")).toContainText(before.split("\n")[0]);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(heading).toContainText("From screen");
+  await expect(snapshot).toHaveCount(0);
+  await expect(page.locator("html")).not.toHaveClass(/water-transitioning/);
+  await expect(page.locator("canvas")).toHaveCount(0);
+
+  await live(page).getByRole("button", { name: "Português", exact: true }).click();
+  await expect(snapshot).toHaveCount(1);
+  await expect(snapshot.locator("h1")).toContainText("From screen");
+  await expect(heading).toContainText(before.split("\n")[0]);
+  await expect(snapshot).toHaveCount(0);
 });
 
 for (const width of [390, 1440]) {
@@ -85,7 +111,7 @@ for (const width of [390, 1440]) {
     await setTheme(page, true);
     const geometry = await page.evaluate(() => {
       const source = document.querySelector(".site-shell")!;
-      const copy = document.querySelector(".theme-snapshot .site-shell")!;
+      const copy = document.querySelector(".water-snapshot .site-shell")!;
       return [".side-rail", ".work-section", ".hero h1"].map((selector) => {
         const a = source.querySelector(selector)!.getBoundingClientRect();
         const b = copy.querySelector(selector)!.getBoundingClientRect();
@@ -160,34 +186,36 @@ for (const failure of ["masks", "canvas", "encoding", "storage"] as const) {
   });
 }
 
-test("the final inverse mask has no opaque pixels left", async ({ page }) => {
+test("the final frame is fully open and leaves no clip behind", async ({
+  page,
+}) => {
+  const radii: number[] = [];
   await page.evaluate(() => {
-    const encode = HTMLCanvasElement.prototype.toDataURL;
-    HTMLCanvasElement.prototype.toDataURL = function (...args) {
-      const result = encode.apply(this, args);
-      document.documentElement.dataset.lastTestMask = result;
-      return result;
+    const target = document.querySelector<HTMLElement>(".site-shell")!;
+    const read = () => {
+      const clip = getComputedStyle(target).clipPath;
+      const match = /circle\(([\d.]+)px/.exec(clip);
+      if (match) (window as unknown as { radii: number[] }).radii.push(Number(match[1]));
+      requestAnimationFrame(read);
     };
+    (window as unknown as { radii: number[] }).radii = [];
+    requestAnimationFrame(read);
   });
   await setTheme(page, true);
   await expectCleanTheme(page, "dark");
-  const remainingPixels = await page.evaluate(async () => {
-    const image = new Image();
-    image.src = document.documentElement.dataset.lastTestMask!;
-    await image.decode();
-    const canvas = document.createElement("canvas");
-    canvas.width = image.width;
-    canvas.height = image.height;
-    const context = canvas.getContext("2d")!;
-    context.drawImage(image, 0, 0);
-    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-    let remaining = 0;
-    for (let i = 3; i < pixels.length; i += 4)
-      if (pixels[i] !== 0) remaining += 1;
-    delete document.documentElement.dataset.lastTestMask;
-    return remaining;
-  });
-  expect(remainingPixels).toBe(0);
+  const samples = await page.evaluate(
+    () => (window as unknown as { radii: number[] }).radii,
+  );
+  radii.push(...samples);
+  expect(radii.length).toBeGreaterThan(10);
+  const corner = await page.evaluate(() =>
+    Math.hypot(innerWidth, innerHeight) / 2,
+  );
+  // The wave keeps growing until it is past the corners, then the clip goes.
+  expect(Math.max(...radii)).toBeGreaterThan(corner * 0.85);
+  expect(radii.every((radius, index) => index === 0 || radius >= radii[index - 1])).toBe(true);
+  await expect(live(page)).toHaveCSS("clip-path", "none");
+  await expect(live(page)).toHaveCSS("z-index", "auto");
 });
 
 test("mobile navigation, translation, PDFs and clipboard failure work across engines", async ({

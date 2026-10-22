@@ -1,22 +1,22 @@
-export interface ThemeSnapshot {
+export interface PageSnapshot {
   element: HTMLElement;
   dispose: () => void;
 }
 
 /**
- * A visual-only copy of this portfolio's current theme. Unlike View Transition
- * pseudo-elements, ordinary DOM elements support CSS masks across engines.
- * The live React tree stays underneath, interactive, and changes to the new
- * theme. Erasing this copy's mask reveals both its new text and its background.
+ * A visual-only copy of the page as it is right now: same theme tokens, same
+ * language. It is inserted just before the live page and stays behind it. The
+ * live page is then clipped to a growing circle, which is what uncovers the
+ * new state: text and background arrive together, with no colour inversion.
  */
-export function createThemeSnapshot(source: HTMLElement): ThemeSnapshot {
+export function createPageSnapshot(source: HTMLElement): PageSnapshot {
   const snapshot = document.createElement("div");
-  snapshot.className = "theme-snapshot";
+  snapshot.className = "water-snapshot";
   snapshot.setAttribute("aria-hidden", "true");
   snapshot.setAttribute("inert", "");
 
-  // Freeze inherited tokens before the real document changes its theme. Copy
-  // the computed values, not a second hard-coded light/dark palette.
+  // Freeze inherited tokens before the real document changes. Copy the
+  // computed values, not a second hard-coded light/dark palette.
   const rootStyle = getComputedStyle(document.documentElement);
   for (let index = 0; index < rootStyle.length; index += 1) {
     const name = rootStyle.item(index);
@@ -89,6 +89,8 @@ export function createThemeSnapshot(source: HTMLElement): ThemeSnapshot {
     .querySelectorAll("script, iframe, object, embed")
     .forEach((node) => node.remove());
   snapshot.appendChild(copy);
+  // Last in the body, but painted behind the live page: the copy has z-index 0
+  // and the live page is lifted to 1 while it is clipped away.
   document.body.appendChild(snapshot);
 
   return { element: snapshot, dispose: () => snapshot.remove() };

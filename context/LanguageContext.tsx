@@ -2,12 +2,15 @@
 
 import React, {
   createContext,
+  useCallback,
   useContext,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
 import { portfolioContent } from "@/data/content";
 import type { Locale, TranslationContent } from "@/data/types";
+import { documentTheme, runWaterChange } from "@/lib/water-change";
 
 interface LanguageContextValue {
   locale: Locale;
@@ -61,6 +64,18 @@ function notifyLocaleListeners() {
   listeners.forEach((listener) => listener());
 }
 
+function commitLocale(nextLocale: Locale) {
+  document.documentElement.lang = nextLocale;
+
+  try {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
+  } catch {
+    // Keep the in-memory language working when storage is unavailable.
+  }
+
+  notifyLocaleListeners();
+}
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const locale = useSyncExternalStore(
     subscribeLocale,
@@ -68,17 +83,22 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     getServerLocaleSnapshot,
   );
 
-  const setLocale = (nextLocale: Locale) => {
-    document.documentElement.lang = nextLocale;
+  const setLocale = useCallback(
+    (nextLocale: Locale) => {
+      if (nextLocale === getLocaleSnapshot()) return;
 
-    try {
-      window.localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
-    } catch {
-      // Keep the in-memory language working when storage is unavailable.
-    }
-
-    notifyLocaleListeners();
-  };
+      // The language change runs through the same water as the theme: the copy
+      // keeps the old words while the ripples reveal the new ones. No theme
+      // changes, so the water borrows the tones of the page itself.
+      const theme = documentTheme();
+      runWaterChange({
+        apply: () => flushSync(() => commitLocale(nextLocale)),
+        departing: theme,
+        arriving: theme,
+      });
+    },
+    [],
+  );
 
   return (
     <LanguageContext.Provider

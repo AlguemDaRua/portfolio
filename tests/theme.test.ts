@@ -3,22 +3,16 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import {
+  createWaterPalette,
   createWaterReveal,
   createWaterTransition,
-  drawWaterMaskFrame,
   drawWaterOverlayFrame,
-  waterDropOffset,
-  waterFallProgress,
+  waterClipPath,
   waterFrontRadius,
   waterHighlightStrength,
   waterRippleProgress,
-  waterSettleProgress,
-  waterWobble,
   WATER_DURATION_MS,
-  WATER_FALL_MS,
-  WATER_MASK_START,
-  WATER_MIN_WOBBLE,
-  WATER_SETTLE_MS,
+  WATER_IMPACT_MS,
 } from "../lib/theme-water";
 
 const rootDir = path.resolve(__dirname, "..");
@@ -38,8 +32,10 @@ function seededRandom(seed: number): () => number {
 /** Records every drawing call so the water can be inspected frame by frame. */
 function fakeContext() {
   const calls: string[] = [];
+  const colours: string[] = [];
   const context = {
     calls,
+    colours,
     fillStyle: "",
     strokeStyle: "",
     lineWidth: 0,
@@ -49,25 +45,31 @@ function fakeContext() {
     moveTo: () => calls.push("moveTo"),
     lineTo: () => calls.push("lineTo"),
     arc: (x: number, y: number, r: number) => calls.push(`arc:${r.toFixed(2)}`),
-    ellipse: () => calls.push("ellipse"),
     fill: () => calls.push("fill"),
-    stroke: () => calls.push("stroke"),
+    stroke() {
+      calls.push("stroke");
+      colours.push(String(this.strokeStyle));
+    },
     save: () => calls.push("save"),
     restore: () => calls.push("restore"),
-    translate: () => calls.push("translate"),
     scale: () => calls.push("scale"),
     clearRect: () => calls.push("clearRect"),
     fillRect: () => calls.push("fillRect"),
     createRadialGradient: () => {
       calls.push("radialGradient");
-      return { addColorStop: () => {} };
+      return {
+        addColorStop: (_stop: number, colour: string) => colours.push(colour),
+      };
     },
     createLinearGradient: () => {
       calls.push("linearGradient");
       return { addColorStop: () => {} };
     },
   };
-  return context as unknown as CanvasRenderingContext2D & { calls: string[] };
+  return context as unknown as CanvasRenderingContext2D & {
+    calls: string[];
+    colours: string[];
+  };
 }
 
 test("Theme tokens are centralized and cover both color schemes", () => {
@@ -99,42 +101,51 @@ test("Theme tokens are centralized and cover both color schemes", () => {
   );
 });
 
-test("The theme change is a water reveal: one drop in the centre, nothing scattered", () => {
-  const revealStyles = readProjectFile("styles/theme-transition.css");
+test("One water engine drives the theme and the language", () => {
+  const revealStyles = readProjectFile("styles/water-transition.css");
   const accessibilityStyles = readProjectFile("styles/accessibility.css");
+  const runner = readProjectFile("lib/water-change.ts");
   const provider = readProjectFile("context/ThemeContext.tsx");
+  const language = readProjectFile("context/LanguageContext.tsx");
   const shell = readProjectFile("components/layout/PortfolioShell.tsx");
   const nextConfig = readProjectFile("next.config.ts");
   const water = readProjectFile("lib/theme-water.ts");
 
-  assert.match(revealStyles, /\.theme-snapshot\s*\{/);
-  assert.match(revealStyles, /mask-image:\s*linear-gradient\(black, black\)/);
-  assert.match(revealStyles, /-webkit-mask-image:/);
-  assert.match(revealStyles, /mask-size:\s*100% 100%/);
-  assert.match(revealStyles, /mask-mode:\s*alpha/);
+  assert.match(revealStyles, /\.water-snapshot\s*\{/);
+  assert.match(revealStyles, /z-index:\s*0/);
   assert.match(revealStyles, /pointer-events:\s*none/);
   assert.match(revealStyles, /\.water-reveal\s*\{/);
   assert.match(
     revealStyles,
-    /html\.theme-transitioning[\s\S]*?transition:\s*none/,
+    /html\.water-transitioning[\s\S]*?transition:\s*none/,
   );
+  // The reveal is a clip, not a mask: clips stay on the fast path.
+  assert.doesNotMatch(revealStyles, /mask-image|mask-mode/);
   assert.doesNotMatch(
     revealStyles,
     /mix-blend-mode|opacity:\s*0\.\d+|::view-transition/,
   );
 
+  // The runner owns the copy, the clip, the commit and the cleanup.
+  assert.match(runner, /createPageSnapshot/);
+  assert.match(runner, /supportsWaterClip/);
+  assert.match(runner, /createWaterReveal/);
+  assert.match(runner, /cancelWaterChange/);
+  assert.match(runner, /reveal\?\.dispose\(\)/);
+  assert.match(runner, /snapshot\?\.dispose\(\)/);
+  assert.match(runner, /prefers-reduced-motion:\s*reduce/);
+  assert.doesNotMatch(water, /toDataURL|mask-image|destination-out/);
+
+  assert.match(provider, /runWaterChange/);
+  assert.match(provider, /departing: departingTheme/);
+  assert.match(provider, /arriving: nextTheme/);
+  assert.match(provider, /flushSync\(\(\) => applyTheme\(nextTheme\)\)/);
   assert.doesNotMatch(
     provider,
     /document\.startViewTransition|root\.animate|navigator\.userAgent/,
   );
-  assert.match(provider, /createThemeSnapshot/);
-  assert.match(provider, /supportsWaterMask/);
-  assert.match(provider, /createWaterReveal/);
-  assert.match(provider, /flushSync\(\(\) => applyTheme\(nextTheme\)\)/);
-  assert.match(provider, /prefers-reduced-motion:\s*reduce/);
-  assert.match(provider, /reveal\.dispose\(\)/);
-  assert.match(provider, /snapshot\?\.dispose\(\)/);
-  assert.match(provider, /version !== activeTransitionVersion/);
+  assert.match(language, /runWaterChange/);
+  assert.match(language, /flushSync\(\(\) => commitLocale\(nextLocale\)\)/);
   assert.doesNotMatch(shell, /WaterOverlay|ThemePaintOverlay/);
   assert.match(accessibilityStyles, /prefers-reduced-motion:\s*reduce/);
   assert.match(nextConfig, /allowedDevOrigins:\s*\["\*\.e2b\.app"\]/);
@@ -147,9 +158,13 @@ test("The theme change is a water reveal: one drop in the centre, nothing scatte
     "The old splatter engine must be deleted, not renamed around",
   );
   assert.doesNotMatch(water, /ink|splatter|splash-ink|speck/i);
+
+  // Seen from above: nothing falls through the page before the impact.
+  assert.doesNotMatch(water, /dropDistance|dropRadius|fallProgress|DropOffset/);
+  assert.doesNotMatch(water, /linearGradient\(/, "No motion streak in the air");
 });
 
-test("The drop lands in the exact centre and nothing is scattered", () => {
+test("The water lands in the exact centre and comes from the arriving theme", () => {
   const first = createWaterTransition("dark", 1440, 900, seededRandom(42));
   assert.deepEqual(
     first,
@@ -161,46 +176,75 @@ test("The drop lands in the exact centre and nothing is scattered", () => {
   );
   assert.equal(first.theme, "dark");
   assert.deepEqual(first.origin, { x: 720, y: 450 });
-  assert.ok(first.dropDistance > 0);
-  assert.ok(first.dropRadius > 0);
-  assert.ok(first.crests.length >= 2);
+  assert.equal(first.crests.length, 5);
   for (const crest of first.crests) {
     assert.ok(
       Math.abs(crest) > 0 && Math.abs(crest) < 90,
       "Ripples sit around the front, measured in pixels",
     );
   }
-});
 
-test("The drop falls under gravity and stops exactly on the surface", () => {
-  assert.equal(waterFallProgress(0), 0);
-  assert.equal(waterFallProgress(WATER_FALL_MS), 1);
-  assert.equal(waterFallProgress(WATER_FALL_MS * 3), 1);
+  // Going dark the water is the dark surface; going light it is the light one.
+  const toDark = createWaterPalette("light", "dark");
+  const toLight = createWaterPalette("dark", "light");
+  assert.equal(toDark.front, "13, 14, 17");
+  assert.equal(toLight.front, "250, 250, 247");
+  assert.notEqual(toDark.front, toLight.front);
+  assert.equal(toDark.ahead, toLight.behind);
+  assert.equal(toDark.behind, toLight.ahead);
 
-  let previous = Infinity;
-  for (let elapsed = 0; elapsed <= WATER_FALL_MS; elapsed += 6) {
-    const offset = waterDropOffset(elapsed, 200);
-    assert.ok(offset <= previous, "The drop never travels upwards");
-    previous = offset;
-  }
-  assert.equal(waterDropOffset(WATER_FALL_MS, 200), 0);
-  assert.equal(waterDropOffset(0, 200), 200);
-
-  // Accelerating, not linear: it covers more ground in the second half.
-  const firstHalf = 200 - waterDropOffset(WATER_FALL_MS / 2, 200);
-  assert.ok(firstHalf < 100);
-});
-
-test("Ripples only expand, slow down, and settle to a still surface", () => {
-  assert.equal(waterRippleProgress(0), 0);
-  assert.equal(waterRippleProgress(WATER_FALL_MS), 0);
-  assert.equal(
-    waterRippleProgress(WATER_DURATION_MS - WATER_SETTLE_MS),
-    1,
+  // Switching language changes no surface, so the front needs contrast to be
+  // seen at all: it uses the page's own neutral tone, never a brand colour.
+  assert.deepEqual(
+    createWaterPalette("light", "light"),
+    createWaterPalette("light"),
   );
+  assert.equal(createWaterPalette("light", "light").front, "72, 75, 84");
+  assert.equal(createWaterPalette("dark", "dark").front, "224, 228, 236");
+});
+
+test("Every water tone is neutral: no stray blue drop", () => {
+  for (const [departing, arriving] of [
+    ["light", "dark"],
+    ["dark", "light"],
+    ["light", "light"],
+    ["dark", "dark"],
+  ] as const) {
+    const palette = createWaterPalette(departing, arriving);
+    for (const [name, value] of Object.entries(palette)) {
+      const [red, green, blue] = value.split(",").map(Number);
+      assert.equal(
+        value.split(",").length,
+        3,
+        `${name} must be an "r, g, b" triplet`,
+      );
+      assert.ok(
+        blue <= red + 12,
+        `${name} (${value}) must stay neutral, not blue`,
+      );
+      assert.ok(Math.abs(blue - green) <= 20, `${name} must not be icy`);
+    }
+  }
+
+  const water = readProjectFile("lib/theme-water.ts");
+  const literals = water.match(/rgba?\([^)]*\)/g) ?? [];
+  assert.ok(literals.length > 0);
+  for (const literal of literals) {
+    const match = /\((\d+),\s*(\d+),\s*(\d+)/.exec(literal);
+    if (!match) continue;
+    const [red, , blue] = match.slice(1).map(Number);
+    assert.ok(
+      blue <= red + 12,
+      `No hard-coded blue tones in the water: ${literal}`,
+    );
+  }
+});
+
+test("Ripples start at the impact point and only expand, then stop", () => {
+  assert.equal(waterRippleProgress(0), 0);
+  assert.equal(waterFrontRadius(0, 1_000), 0, "The first frame is a point");
+  assert.equal(waterRippleProgress(WATER_DURATION_MS), 1);
   assert.equal(waterHighlightStrength(WATER_DURATION_MS), 0);
-  assert.equal(waterSettleProgress(WATER_FALL_MS), 0);
-  assert.equal(waterSettleProgress(WATER_DURATION_MS), 1);
 
   let previousRadius = -1;
   let previousGrowth = Infinity;
@@ -217,18 +261,20 @@ test("Ripples only expand, slow down, and settle to a still surface", () => {
     }
     previousRadius = radius;
   }
-  assert.equal(
-    waterFrontRadius(WATER_DURATION_MS - WATER_SETTLE_MS, 1000),
-    1000,
+  assert.equal(waterFrontRadius(WATER_DURATION_MS, 1000), 1000);
+
+  // Smooth: no single frame anywhere in the life of the ripple jumps the edge.
+  assert.ok(
+    waterFrontRadius(16, 850) < 24,
+    "The first frame moves less than 24px on a laptop",
+  );
+  assert.ok(
+    waterFrontRadius(16, 850) > waterFrontRadius(16, 400),
+    "A bigger viewport moves faster, as real water would",
   );
 });
 
-test("Every viewport is fully covered, even at the smallest wobble", () => {
-  assert.ok(WATER_MIN_WOBBLE > 0.94 && WATER_MIN_WOBBLE < 1);
-  for (let step = 0; step < 720; step += 1) {
-    assert.ok(waterWobble((step / 720) * Math.PI * 2, 1.3) >= WATER_MIN_WOBBLE);
-  }
-
+test("Every viewport is fully covered by the final frame", () => {
   for (const [width, height] of [
     [1, 1],
     [390, 844],
@@ -243,7 +289,7 @@ test("Every viewport is fully covered, even at the smallest wobble", () => {
       assert.equal(transition.origin.y, height / 2);
 
       const finalRadius = waterFrontRadius(
-        WATER_DURATION_MS - WATER_SETTLE_MS,
+        WATER_DURATION_MS,
         transition.maxRadius,
       );
       for (const [x, y] of [
@@ -256,101 +302,70 @@ test("Every viewport is fully covered, even at the smallest wobble", () => {
           x - transition.origin.x,
           y - transition.origin.y,
         );
-        for (let step = 0; step < 64; step += 1) {
-          const factor = waterWobble((step / 64) * Math.PI * 2, transition.phase);
-          assert.ok(
-            finalRadius * factor >= distance,
-            "The last frame must clear the whole viewport",
-          );
-        }
+        assert.ok(
+          finalRadius >= distance,
+          "The last frame must clear the whole viewport",
+        );
       }
-      assert.equal(
-        waterSettleProgress(WATER_DURATION_MS),
-        1,
-        "The final frame fades away the last film",
-      );
     }
   }
+
+  assert.equal(waterClipPath(120.44, { x: 720, y: 450 }), "circle(120.4px at 720.0px 450.0px)");
+  assert.equal(waterClipPath(-5, { x: 0, y: 0 }), "circle(0.0px at 0.0px 0.0px)");
 });
 
-test("The mask only ever erases: ripples advance and the front never redraws backwards", () => {
-  const transition = createWaterTransition("dark", 800, 600, seededRandom(7));
-  const context = fakeContext();
-  let cursor = WATER_MASK_START;
-  let previousRadius = 0;
-
-  for (
-    let elapsed = WATER_FALL_MS + 16;
-    elapsed <= WATER_DURATION_MS;
-    elapsed += 16
-  ) {
-    const before = context.calls.length;
-    const grew = cursor.radius;
-    cursor = drawWaterMaskFrame(context, transition, elapsed, cursor);
-    assert.ok(cursor.radius >= previousRadius, "The reveal never retreats");
-    const drawn = context.calls.slice(before);
-    if (cursor.radius > grew) {
-      assert.ok(drawn.includes("fill"), "A growing front erases new water");
-    } else {
-      assert.deepEqual(drawn, ["fillRect"], "Only the settling fade remains");
-    }
-    previousRadius = cursor.radius;
-  }
-
-  // The final frame removes the last film of the old theme.
-  cursor = drawWaterMaskFrame(context, transition, WATER_DURATION_MS, cursor);
-  assert.equal(cursor.settle, 1);
-
-  // Once the surface is still, a stray frame cannot change anything.
-  const settled = context.calls.length;
-  const result = drawWaterMaskFrame(context, transition, 0, cursor);
-  assert.equal(result.radius, cursor.radius);
-  assert.equal(context.calls.length, settled);
-});
-
-test("The visible layer draws a drop, a splash and ripples, then clears itself", () => {
-  const transition = createWaterTransition("light", 1280, 800, seededRandom(3));
+test("The visible layer draws the impact and ripples in theme tones", () => {
+  const transition = createWaterTransition(
+    "dark",
+    1280,
+    800,
+    seededRandom(3),
+    createWaterPalette("light", "dark"),
+  );
   const context = fakeContext();
 
-  drawWaterOverlayFrame(context, transition, WATER_FALL_MS * 0.5);
-  const falling = context.calls.join(",");
-  assert.match(falling, /clearRect/);
-  assert.match(falling, /linearGradient/, "The drop has a motion streak");
-  assert.match(falling, /arc/, "The droplet is round");
-  assert.match(falling, /ellipse/, "Specular highlight");
-
-  context.calls.length = 0;
-  drawWaterOverlayFrame(context, transition, WATER_FALL_MS + 40);
+  drawWaterOverlayFrame(context, transition, 8);
   const impact = context.calls.join(",");
-  assert.match(impact, /ellipse/, "Crown splash on contact");
-  assert.match(impact, /stroke/, "Ripples are strokes, not filled blobs");
+  assert.match(impact, /clearRect/);
+  assert.match(impact, /radialGradient/, "The impact point glows");
+  assert.match(impact, /arc/, "The disturbance is round, seen from above");
+  assert.doesNotMatch(impact, /linearGradient/, "Nothing streaks across the page");
   assert.doesNotMatch(impact, /fillRect/, "Nothing opaque is laid over the page");
 
   context.calls.length = 0;
-  drawWaterOverlayFrame(context, transition, WATER_DURATION_MS);
-  assert.ok(
-    (context.calls.join(",").match(/stroke/g) ?? []).length < 4,
-    "Highlights fade out as the water settles",
-  );
+  drawWaterOverlayFrame(context, transition, WATER_IMPACT_MS + 60);
+  const ripples = context.calls.join(",");
+  assert.match(ripples, /stroke/, "Ripples are strokes, not filled blobs");
+  assert.doesNotMatch(ripples, /fillRect/);
 
-  // The layer always starts from a clean frame: no ghost trails.
-  assert.equal(context.calls[0], "clearRect");
+  for (const colour of context.colours) {
+    const match = /\((\d+),\s*(\d+),\s*(\d+)/.exec(colour);
+    if (!match) continue;
+    const [red, , blue] = match.slice(1).map(Number);
+    assert.ok(blue <= red + 12, `Every drawn tone stays neutral: ${colour}`);
+  }
+
+  context.calls.length = 0;
+  drawWaterOverlayFrame(context, transition, WATER_DURATION_MS);
+  assert.deepEqual(
+    context.calls,
+    ["clearRect"],
+    "Highlights are gone when the water is still",
+  );
 });
 
-test("Reveal lifecycle: rAF driven, detached, and fully released", () => {
+test("Reveal lifecycle: clipped live page, 60 fps canvas, fully released", () => {
   const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   const originalDocument = Object.getOwnPropertyDescriptor(
     globalThis,
     "document",
   );
   const callbacks = new Map<number, FrameRequestCallback>();
-  const values = new Map<string, string>();
+  const clips = new Map<string, string>();
   const created: FakeCanvas[] = [];
   const attached: FakeCanvas[] = [];
   let frameId = 0;
-  let initialFills = 0;
-  let encodeFails = false;
-  let maskContextAvailable = true;
+  let canvasContextAvailable = true;
 
   type FakeCanvas = {
     width: number;
@@ -360,7 +375,6 @@ test("Reveal lifecycle: rAF driven, detached, and fully released", () => {
     setAttribute: () => void;
     remove: () => void;
     getContext: (id: string) => unknown;
-    toDataURL: () => string;
   };
 
   const appendChild = (node: FakeCanvas) => {
@@ -385,7 +399,6 @@ test("Reveal lifecycle: rAF driven, detached, and fully released", () => {
     configurable: true,
     value: {
       body: { appendChild },
-      getElementById: () => null,
       createElement: () => {
         const canvas: FakeCanvas = {
           width: 0,
@@ -396,46 +409,19 @@ test("Reveal lifecycle: rAF driven, detached, and fully released", () => {
             const index = attached.indexOf(canvas);
             if (index >= 0) attached.splice(index, 1);
           },
-          getContext: (id: string) => {
-            if (id === "2d" && canvas.className !== "water-reveal") {
-              if (!maskContextAvailable) return null;
-              return {
-                globalCompositeOperation: "source-over",
-                fillStyle: "",
-                fillRect() {
-                  initialFills += 1;
-                },
-                scale() {},
-                beginPath() {},
-                arc() {},
-                fill() {},
-                createRadialGradient: () => ({ addColorStop: () => {} }),
-                fillRectRaw() {},
-              };
-            }
-            return {
-              scale() {},
-              clearRect() {},
-              beginPath() {},
-              moveTo() {},
-              lineTo() {},
-              closePath() {},
-              arc() {},
-              ellipse() {},
-              fill() {},
-              stroke() {},
-              save() {},
-              restore() {},
-              translate() {},
-              fillRect() {},
-              createRadialGradient: () => ({ addColorStop: () => {} }),
-              createLinearGradient: () => ({ addColorStop: () => {} }),
-            };
-          },
-          toDataURL: () => {
-            if (encodeFails) throw new Error("Encoding failed");
-            return "data:image/png;base64,water";
-          },
+          getContext: () =>
+            canvasContextAvailable
+              ? {
+                  scale() {},
+                  clearRect() {},
+                  beginPath() {},
+                  arc() {},
+                  fill() {},
+                  stroke() {},
+                  fillRect() {},
+                  createRadialGradient: () => ({ addColorStop: () => {} }),
+                }
+              : null,
         };
         created.push(canvas);
         return canvas;
@@ -443,11 +429,12 @@ test("Reveal lifecycle: rAF driven, detached, and fully released", () => {
     },
   });
 
-  const target = {
+  const page = {
     style: {
-      setProperty: (key: string, value: string) => values.set(key, value),
-      removeProperty: (key: string) => values.delete(key),
+      setProperty: (key: string, value: string) => clips.set(key, value),
+      removeProperty: (key: string) => clips.delete(key),
     },
+    getBoundingClientRect: () => ({ left: 12, top: -40 }),
   } as unknown as HTMLElement;
   const advance = (time: number) => {
     const [id, callback] = [...callbacks.entries()][0];
@@ -462,23 +449,21 @@ test("Reveal lifecycle: rAF driven, detached, and fully released", () => {
       2160,
       seededRandom(4),
     );
-    const reveal = createWaterReveal(transition, target);
-    const [mask, overlay] = created;
+    const reveal = createWaterReveal(transition, page);
+    assert.equal(created.length, 1, "One canvas: the water, nothing else");
+    const [overlay] = created;
     assert.equal(overlay.className, "water-reveal");
-    assert.ok(
-      mask.width * mask.height < 435_000,
-      "Bound the mask encoding cost",
+    assert.equal(
+      overlay.width,
+      3840 * 1.5,
+      "The visible layer follows the display, capped for cost",
     );
     assert.equal(
-      initialFills,
-      1,
-      "Initialize the old snapshot mask as fully opaque",
+      clips.get("clip-path"),
+      "circle(0px at 0px 0px)",
+      "The live page is hidden before its state changes",
     );
-    assert.equal(
-      values.size,
-      0,
-      "The opaque CSS fallback preserves the old snapshot before the first frame",
-    );
+    assert.equal(clips.get("-webkit-clip-path"), clips.get("clip-path"));
 
     const startedAt = performance.now();
     let completed = false;
@@ -489,56 +474,64 @@ test("Reveal lifecycle: rAF driven, detached, and fully released", () => {
     reveal.play(() => assert.fail("Cannot start two loops"));
     assert.equal(callbacks.size, 1);
 
-    advance(startedAt + 30);
-    assert.equal(
-      values.size,
-      0,
-      "While the drop is still in the air the old theme stays untouched",
-    );
+    // First frame: the surface is already open, so the water responds instantly.
+    advance(startedAt + 16);
+    const firstClip = clips.get("clip-path")!;
+    assert.match(firstClip, /^circle\([\d.]+px at 1908\.0px 1120\.0px\)$/);
+    const firstRadius = Number(/circle\(([\d.]+)px/.exec(firstClip)![1]);
+    assert.ok(firstRadius > 0 && firstRadius < 80);
 
-    advance(startedAt + WATER_FALL_MS + 60);
-    assert.equal(
-      values.get("mask-image"),
-      'url("data:image/png;base64,water")',
-    );
-    assert.equal(values.get("-webkit-mask-image"), values.get("mask-image"));
+    // Every frame updates the clip: display rate, not coarse steps.
+    const radii: number[] = [firstRadius];
+    for (let time = 32; time <= 320; time += 16) {
+      advance(startedAt + time);
+      const clip = clips.get("clip-path")!;
+      radii.push(Number(/circle\(([\d.]+)px/.exec(clip)![1]));
+    }
+    for (let index = 1; index < radii.length; index += 1) {
+      assert.ok(radii[index] > radii[index - 1], "The front keeps advancing");
+    }
 
-    advance(startedAt + WATER_DURATION_MS + 100);
+    advance(startedAt + WATER_DURATION_MS + 16);
     assert.equal(
       completed,
       false,
-      "Present the fully erased mask before finishing",
+      "Present the fully open clip before finishing",
     );
-    advance(startedAt + WATER_DURATION_MS + 120);
+    assert.ok(
+      Number(/circle\(([\d.]+)px/.exec(clips.get("clip-path")!)![1]) >=
+        transition.maxRadius - 0.1,
+      "The last frame clears the viewport",
+    );
+    advance(startedAt + WATER_DURATION_MS + 32);
     assert.equal(completed, true);
-    assert.equal(values.size, 0);
+    assert.equal(clips.size, 0, "The clip is removed with the reveal");
     assert.equal(callbacks.size, 0);
-    assert.equal(attached.length, 0, "Both canvases leave the DOM");
-    assert.equal(mask.width, 0);
+    assert.equal(attached.length, 0, "The water canvas leaves the DOM");
     assert.equal(overlay.width, 0);
     reveal.dispose();
-    assert.equal(values.size, 0, "Disposal is idempotent");
+    assert.equal(clips.size, 0, "Disposal is idempotent");
 
-    const interrupted = createWaterReveal(transition, target);
+    const interrupted = createWaterReveal(transition, page);
     interrupted.play(() => assert.fail("Cancelled water must not finish"));
     interrupted.dispose();
     assert.equal(callbacks.size, 0);
-    assert.equal(values.size, 0);
+    assert.equal(clips.size, 0);
     assert.equal(attached.length, 0, "An interrupted reveal leaves nothing");
     interrupted.play(() => assert.fail("Disposed reveal must not restart"));
     assert.equal(callbacks.size, 0);
 
-    const failed = createWaterReveal(transition, target);
-    encodeFails = true;
-    failed.play(() => failed.dispose());
-    advance(performance.now() + WATER_FALL_MS + 40);
-    assert.equal(values.size, 0);
-    assert.equal(callbacks.size, 0);
-
-    encodeFails = false;
-    maskContextAvailable = false;
-    assert.throws(() => createWaterReveal(transition, target), /Canvas 2D/);
-    assert.equal(values.size, 0);
+    canvasContextAvailable = false;
+    const failed = createWaterReveal(transition, page);
+    let failedComplete = false;
+    failed.play(() => {
+      failedComplete = true;
+      failed.dispose();
+    });
+    assert.equal(failedComplete, true, "No canvas means no animation, no error");
+    assert.equal(clips.size, 0);
+    assert.equal(attached.length, 0);
+    canvasContextAvailable = true;
   } finally {
     if (originalWindow)
       Object.defineProperty(globalThis, "window", originalWindow);
@@ -557,7 +550,7 @@ test("Global CSS is split into named style responsibilities", () => {
     "base.css",
     "navigation.css",
     "sections.css",
-    "theme-transition.css",
+    "water-transition.css",
     "accessibility.css",
   ]) {
     assert.ok(

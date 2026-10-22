@@ -1,0 +1,45 @@
+/* Freeze CSS transitions so the copy and the live page always show the exact
+   tokens of their own state. */
+html.water-transitioning,
+html.water-transitioning *,
+html.water-transitioning *::before,
+html.water-transitioning *::after {
+  transition: none !important;
+}
+
+/* A visual-only copy of the page BEFORE the change. The live page above it is
+   clipped to a growing circle, so the water uncovers the new state from the
+   centre. Works for the theme and for the language, without colour inversion. */
+.water-snapshot {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--text);
+  pointer-events: none;
+}
+
+.water-snapshot * {
+  pointer-events: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+/* The visible water: impact burst, front and ripples. It sits above the copy,
+   never intercepts input, and is removed when the reveal ends. */
+.water-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce), print {
+  .water-snapshot,
+  .water-reveal {
+    display: none !important;
+  }
+}

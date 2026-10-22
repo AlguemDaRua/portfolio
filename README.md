@@ -61,8 +61,9 @@ As exceções são intencionais: o JSX automático não exige `React` no scope; 
 - `components/ui/` — cartão de identidade, alternadores de tema/idioma, cabeçalhos e ligações utilitárias.
 - `context/` — estado persistente do tema e do idioma.
 - `data/` — conteúdo bilingue e tipos.
-- `lib/theme-water.ts` — gota, ondas e máscara Canvas da troca de tema.
-- `lib/theme-snapshot.ts` — cópia visual do tema anterior por baixo da animação.
+- `lib/theme-water.ts` — ondas, paleta e camada Canvas da transição de água.
+- `lib/water-change.ts` — corre a transição: copia a página, aplica a mudança e limpa tudo.
+- `lib/water-snapshot.ts` — cópia visual da página anterior por baixo da animação.
 - `styles/` — tokens, base, navegação, secções, animação do tema e acessibilidade/impressão.
 - `tests/` — testes de conteúdo, navegação e comportamento/estrutura do tema.
 
@@ -75,26 +76,26 @@ O visual é editorial e contido: uma nav fixa à esquerda, tipografia grande, mu
 - **Estilos:** cores, largura máxima, raios e ritmo vertical em `styles/tokens.css`. A responsividade vive junto de cada bloco e a acessibilidade/impressão tem ficheiro próprio; a nav lateral passa a barra compacta aos 980px.
 - **Acessibilidade:** ligação para saltar para o conteúdo, IDs únicos, títulos associados às secções, foco visível e menu mobile com Escape, foco inicial e fecho ao sair. Tudo o que é decorativo respeita `prefers-reduced-motion`, `forced-colors` e impressão.
 - **Contacto:** a cópia só anuncia sucesso depois de a API Clipboard confirmar; falhas apresentam uma alternativa e o `mailto:` continua disponível.
-- **Testes:** `tests/ui.test.ts` verifica o HTML renderizado no servidor, navegação, traduções de controlos, destinos reais e contraste dos tokens de texto. Os testes da máscara de água continuam independentes.
+- **Testes:** `tests/ui.test.ts` verifica o HTML renderizado no servidor, navegação, traduções de controlos, destinos reais e contraste dos tokens de texto. Os testes da transição de água continuam independentes.
 
 Antes de publicar, testar PT/EN e claro/escuro entre 320px e desktop, navegação apenas com teclado, menu mobile, cópia de e-mail permitida/negada, PDFs e persistência após recarregar. Uma auditoria automática de acessibilidade não substitui a verificação com leitores de ecrã e dispositivos reais.
 
-## Tema claro/escuro
+## Tema claro/escuro e idioma
 
-A preferência inicial respeita o tema do sistema e é carregada antes da primeira pintura da página. Em navegadores compatíveis, a troca é revelada por **uma gota de água a cair no centro exato do viewport**: a gota acelera, bate na superfície, salpica e abre **ondas concêntricas** que se propagam em tempo real até às margens. Duração total: **1,15 s**. Nada cai fora do centro — só uma superfície de água a acalmar.
+A preferência inicial respeita o tema do sistema e é carregada antes da primeira pintura da página. Em navegadores compatíveis, tanto a troca de tema como a troca de idioma são reveladas por **uma onda de água vista de cima**: no centro exato do viewport nasce um ponto de impacto, e dali partem **ondas concêntricas** que se propagam em tempo real até às margens. Não há gota a cair através da página — é uma superfície vista de cima, e a primeira frame já abre a água. Duração total: **900 ms**.
 
 ### Como funciona
 
-- `ThemeToggle` continua a usar `changeTheme`, sem coordenadas do botão nem alterações na composição das secções.
-- `lib/theme-snapshot.ts` cria uma cópia visual temporária do portfólio no **tema antigo**, fixando os tokens computados. A cópia é `inert`, `aria-hidden`, não interceta cliques e não duplica IDs. A posição do conteúdo, da nav fixa e do cabeçalho sticky é preservada, mesmo com a página deslocada.
-- `ThemeContext` faz o commit do tema novo na árvore React real, por baixo dessa cópia. Nenhuma inversão de cores é usada.
-- `lib/theme-water.ts` corre sobre **dois Canvas 2D fora do DOM**:
-  - **máscara** — começa opaca e usa `destination-out` para consumir a cópia antiga a partir do centro. O tema novo real, com letras e componentes, aparece por baixo.
-  - **água visível** — desenha a gota em queda (com rasto e reflexo especular), a coroa de água no contacto e as ondas com brilhos. A paleta adapta-se à superfície que vai ser atingida: água escura sobre página clara, água luminosa sobre página escura.
-- **Física, não linearidade:** a queda é quadrática (gravidade); a frente das ondas sai depressa e desacelera como uma onda real; os brilhos desvanecem à medida que a superfície se acalma.
-- **Garantia de cobertura:** cada frente é limitada inferiormente (`WATER_MIN_WOBBLE`), e o raio máximo inclui essa margem mais folga para os cantos — logo o último frame cobre sempre o viewport, testado de 1×1 a 4000×300. Um `settle` final de 150 ms remove a última película sem “pop”.
-- **A água nunca anda para trás:** a máscara só perde alfa; o raio e o settle são monotónicos. A máscara é codificada a ~30 fps (orçamento de ~640 mil píxeis), enquanto a camada visível corre a cada frame. Ambas as camadas, os listeners e a cópia são libertados no fim, em interrupções e em erros.
-- A máscara é aplicada diretamente a um **elemento HTML normal**, com `mask-image` e o equivalente `-webkit-mask-image`. Não depende de `document.startViewTransition()`, animação de pseudo-elementos, deteção do nome do browser ou `mix-blend-mode: difference`.
+- `ThemeToggle` e `LanguageToggle` chamam `runWaterChange`, sem coordenadas do botão nem alterações na composição das secções.
+- `lib/water-snapshot.ts` cria uma cópia visual temporária da página **no estado anterior** (tema antigo, palavras antigas), fixando os tokens computados. A cópia fica por baixo da página viva, é `inert`, `aria-hidden`, não interceta cliques e não duplica IDs. A posição do conteúdo, da nav fixa e do cabeçalho sticky é preservada, mesmo com a página deslocada.
+- `lib/water-change.ts` faz o commit do novo estado na árvore React real, por cima dessa cópia, e garante watchdog, listeners e limpeza. Nenhuma inversão de cores é usada.
+- A revelação é um **`clip-path: circle()`** aplicado à página viva: o círculo cresce a partir do centro e descobre o estado novo, deixando a cópia antiga à vista à volta. Um clip é a forma mais barata que um browser consegue animar; uma máscara de Canvas obrigava a codificar uma imagem por frame e cortava a fluidez para menos de metade.
+- `lib/theme-water.ts` desenha a água num **Canvas 2D fora do DOM**, de resolução completa (até 1,5× DPR), a cada frame: o clarão e o anel do impacto, os salpicos radiais, a frente e as ondulações que viajam com ela. Tudo são círculos (`arc`), por isso uma frame custa poucos traços.
+- **Cor do tema que chega:** a água não tem cor própria. A frente, as ondas e os salpicos usam os neutros do tema de destino — água escura quando a página vai escurecer, água clara quando vai iluminar. As ondulações à frente da frente leem-se sobre a página que sai; as que ficam para trás leem-se sobre a que já chegou. Na troca de idioma não há tema novo, por isso a água usa os tons da própria página.
+- **Suavidade:** a frente arranca depressa e desacelera, com uma curva quadrática contínua (`1.45t − 0.45t²`) em vez de um salto; o clip e o brilho são atualizados a cada frame e decaem de forma contínua até zero. Não existe fase de queda nem espera inicial: a primeira frame já abre a superfície.
+- **Garantia de cobertura:** o raio máximo é a diagonal da viewport com 6% de folga, por isso o último frame cobre sempre os cantos, testado de 1×1 a 4000×300. Nesse frame o clip é removido, sem “pop”.
+- **A água nunca anda para trás:** o raio é monotónico e o clip é substituído, nunca recriado. O Canvas, os listeners e a cópia são libertados no fim, em interrupções e em erros.
+- O clip é aplicado diretamente a um **elemento HTML normal**, com `clip-path` e o equivalente `-webkit-clip-path`. Não depende de `document.startViewTransition()`, animação de pseudo-elementos, deteção do nome do browser ou `mix-blend-mode: difference`.
 
 A cópia visual foi desenhada para os componentes estáticos deste portfólio, não como biblioteca genérica de screenshots de qualquer DOM. Ao acrescentar vídeos, iframes, Canvas visíveis ou componentes com seletores dependentes de IDs, rever a fidelidade da cópia e os testes de alinhamento.
 
@@ -104,14 +105,14 @@ O objetivo é **compatibilidade funcional com melhoria progressiva**, não garan
 
 | Capacidade | Comportamento |
 | --- | --- |
-| Canvas 2D e máscaras CSS normais | Gota, coroa e ondas nos dois sentidos, independentemente de existir View Transitions |
-| Movimento reduzido ou separador oculto | Mudança de tema sem animação |
-| Máscaras/Canvas indisponíveis, leitura do Canvas bloqueada ou erro de codificação | Mudança direta, sem deixar uma cópia a tapar a página |
+| Canvas 2D e `clip-path` | Impacto, frente e ondas em ambos os sentidos, independentemente de existir View Transitions |
+| Movimento reduzido ou separador oculto | Mudança de tema ou idioma sem animação |
+| `clip-path`/Canvas indisponíveis ou contexto 2D bloqueado | Mudança direta, sem deixar uma cópia a tapar a página |
 | `localStorage` bloqueado | Tema e idioma funcionam na sessão, sem prometer persistência |
 | Clipboard indisponível/negado | Mensagem de erro; endereço selecionável e ligação `mailto:` continuam disponíveis |
 | Unidades `svh`/`dvh` indisponíveis | Dimensões alternativas em `vh` |
 
-Redimensionar, deslocar a página, ocultar o separador ou ativar movimento reduzido durante o efeito termina a animação no tema solicitado. Cliques sucessivos invalidam callbacks antigos: prevalece a última escolha.
+Redimensionar, deslocar a página, ocultar o separador ou ativar movimento reduzido durante o efeito termina a animação no estado solicitado. Cliques sucessivos invalidam callbacks antigos: prevalece a última escolha, e uma troca de idioma a meio de uma troca de tema assenta a primeira antes de começar a segunda.
 
 ### Testes entre motores
 
@@ -126,6 +127,6 @@ npm run test:browser -- --project=firefox
 
 O Playwright inicia o build de produção na porta 3100. `PLAYWRIGHT_BASE_URL` permite usar um servidor local já iniciado (fora de CI). A CI executa projetos separados para Chromium, Firefox e WebKit, além dos testes unitários/build.
 
-`tests/theme.test.ts` verifica a origem central, a queda acelerada, a desaceleração das ondas, a monotonia do raio, a cobertura final dos cantos em vários viewports e a limpeza de recursos. `e2e/compatibility.spec.ts` verifica a animação **com View Transitions removido**, separação dos tokens, alinhamento desktop/mobile após scroll, máscara final, cliques rápidos, movimento reduzido, redimensionamento, falhas de APIs, idiomas, menu e PDFs.
+`tests/theme.test.ts` verifica a origem central, a paleta neutra do tema de destino, a desaceleração das ondas, a monotonia do raio, a cobertura final dos cantos em vários viewports, o clip a cada frame e a limpeza de recursos. `e2e/compatibility.spec.ts` verifica a animação **com View Transitions removido**, a troca de idioma pela mesma água, separação dos tokens, alinhamento desktop/mobile após scroll, clip final, cliques rápidos, movimento reduzido, redimensionamento, falhas de APIs, idiomas, menu e PDFs.
 
 Testar os três motores reduz regressões, mas não certifica todas as versões de Zen, Safari/iOS ou browsers modificados. Confirmar também no browser/dispositivo real, especialmente com extensões e proteções de privacidade que possam bloquear Canvas.

@@ -39,7 +39,7 @@
 @media print {
   .side-rail,
   .back-to-top,
-  .theme-snapshot,
+  .water-snapshot,
   .hero-visual {
     display: none !important;
   }
