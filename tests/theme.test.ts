@@ -693,10 +693,20 @@ test("Dark mode is true black and the navigation is the light source", () => {
   assert.match(tokens, /--rail-hover-glow/);
   assert.match(navigation, /\.side-rail:has\(\.rail-nav a:hover\)/);
 
-  // The rail header carries the name alone.
-  assert.doesNotMatch(
-    readProjectFile("components/layout/SideRail.tsx"),
-    /rail-role|meta\.role/,
+  // The rail header is the two-tone wordmark: no monogram, no role line.
+  const railMarkup = readProjectFile("components/layout/SideRail.tsx");
+  assert.doesNotMatch(railMarkup, /rail-role|meta\.role|rail-monogram/);
+  assert.match(railMarkup, /rail-word-first[^]*rail-word-last/);
+
+  assert.match(navigation, /\.rail-word-first \{\s*color: var\(--strong\)/);
+  assert.match(navigation, /\.rail-word-last \{\s*color: var\(--accent\)/);
+  assert.match(
+    navigation,
+    /\.rail-brand:hover \.rail-word-first[^}]*color: var\(--accent\)/,
+  );
+  assert.match(
+    navigation,
+    /\.rail-brand:hover \.rail-word-last[^}]*color: var\(--strong\)/,
   );
 });
 

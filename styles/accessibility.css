@@ -20,6 +20,16 @@
   }
 }
 
+/* Asked for less transparency: the rail trades glass for solid paper. */
+@media (prefers-reduced-transparency: reduce) {
+  .side-rail,
+  .back-to-top {
+    background: var(--paper);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 @media (forced-colors: active) {
   .au-card,
   .contact-panel {

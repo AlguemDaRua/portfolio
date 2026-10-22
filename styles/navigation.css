@@ -49,57 +49,46 @@
 .rail-brand {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 2px 6px 0;
+  padding: 3px 9px 0;
 }
 
-.rail-monogram {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  flex: 0 0 auto;
-  border-radius: 11px;
-  color: var(--paper);
-  background: var(--text);
-  font-size: 14px;
+/* The signature: two words, two tones. Hovering trades them. */
+.rail-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.28em;
+  white-space: nowrap;
+  font-size: 17px;
   font-weight: 560;
-  letter-spacing: -0.06em;
-  transition:
-    transform 300ms var(--ease-out),
-    box-shadow 300ms var(--ease);
+  letter-spacing: -0.035em;
+  line-height: 1.15;
 }
 
-/* Lifts and glows, never tilts. */
-.rail-brand:hover .rail-monogram {
-  transform: scale(1.05);
-  box-shadow:
-    0 0 0 1px var(--rail-hover-edge),
-    0 12px 26px -14px var(--rail-hover-glow);
+.rail-word {
+  transition: color 360ms var(--ease);
 }
 
-.monogram-dot {
+/* The second word follows a beat later, so the swap reads as a hand-over. */
+.rail-word-last {
+  transition-delay: 60ms;
+}
+
+.rail-word-first {
+  color: var(--strong);
+}
+
+.rail-word-last {
   color: var(--accent);
 }
 
-:root[data-theme="dark"] .monogram-dot {
-  color: #8c96ff;
+.rail-brand:hover .rail-word-first,
+.rail-brand:focus-visible .rail-word-first {
+  color: var(--accent);
 }
 
-.rail-identity {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.rail-name {
+.rail-brand:hover .rail-word-last,
+.rail-brand:focus-visible .rail-word-last {
   color: var(--strong);
-  white-space: nowrap;
-  font-size: 13.5px;
-  font-weight: 540;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
 }
 
 .rail-progress {
@@ -213,6 +202,7 @@
   font-family: var(--font-mono);
   font-size: 9.5px;
   letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
   transition:
     font-size 300ms var(--ease-out),
     color 180ms var(--ease);
@@ -371,10 +361,10 @@
   }
 }
 
-/* Narrow phones: the monogram is enough; controls stay full-size. */
+/* Narrow phones: the wordmark shrinks, it never disappears. */
 @media (max-width: 460px) {
-  .rail-name {
-    display: none;
+  .rail-wordmark {
+    font-size: 15px;
   }
 }
 
@@ -429,10 +419,8 @@
     padding: 0;
   }
 
-  .rail-monogram {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
+  .rail-wordmark {
+    font-size: 16px;
   }
 
   .rail-location,

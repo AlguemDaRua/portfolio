@@ -938,6 +938,28 @@
   letter-spacing: -0.02em;
 }
 
+.rail-monogram {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 11px;
+  color: var(--paper);
+  background: var(--text);
+  font-size: 14px;
+  font-weight: 560;
+  letter-spacing: -0.06em;
+}
+
+.monogram-dot {
+  color: var(--accent);
+}
+
+:root[data-theme="dark"] .monogram-dot {
+  color: #8c96ff;
+}
+
 .footer-brand .rail-monogram {
   width: 26px;
   height: 26px;

@@ -152,9 +152,19 @@ test("navigation hover grows the light, never the target under the pointer", asy
   page,
 }) => {
   const rail = live(page).locator(".side-rail");
-  // The header is the name alone; the role line is gone for good.
+  // The header is the name alone, spelled in two tones that trade places.
   await expect(rail.locator(".rail-brand")).toContainText("Azam Usman");
-  await expect(rail.locator(".rail-role")).toHaveCount(0);
+  await expect(rail.locator(".rail-role, .rail-monogram")).toHaveCount(0);
+
+  const tones = () =>
+    rail
+      .locator(".rail-word")
+      .evaluateAll((words) => words.map((word) => getComputedStyle(word).color));
+  const resting = await tones();
+  expect(resting).toHaveLength(2);
+  expect(resting[0]).not.toBe(resting[1]);
+  await rail.locator(".rail-brand").hover();
+  await expect.poll(tones).toEqual([resting[1], resting[0]]);
 
   for (const edge of ["left", "right"] as const) {
     const link = rail.locator(".rail-nav a").nth(2);

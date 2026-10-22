@@ -122,13 +122,9 @@ export function SideRail() {
         aria-label={`Azam Usman — ${t.nav.home}`}
         onClick={closeMenu}
       >
-        <span className="rail-monogram">
-          <span>
-            AU<span className="monogram-dot">.</span>
-          </span>
-        </span>
-        <span className="rail-identity">
-          <span className="rail-name">Azam Usman</span>
+        <span className="rail-wordmark">
+          <span className="rail-word rail-word-first">Azam</span>{" "}
+          <span className="rail-word rail-word-last">Usman</span>
         </span>
       </a>
 
