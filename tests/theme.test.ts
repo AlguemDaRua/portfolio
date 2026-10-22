@@ -4,12 +4,15 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   createThemePaint,
-  drawThemePaintFrame,
   createThemeTransition,
-  THEME_DROP_COLUMNS,
-  THEME_DROP_COUNT,
-  THEME_DROP_ROWS,
+  drawThemePaintFrame,
+  themeWaveFactor,
+  themeWaveProgress,
+  themeWaveRadius,
   THEME_TRANSITION_DURATION_MS,
+  THEME_WAVE_HOLD_MS,
+  THEME_WAVE_MIN_FACTOR,
+  THEME_WAVE_START,
 } from "../lib/theme-paint";
 
 const rootDir = path.resolve(__dirname, "..");
@@ -49,17 +52,14 @@ test("Theme tokens are centralized and cover both color schemes", () => {
     );
   }
 
-  assert.ok(
-    tokens.includes(":root {"),
-    "Light tokens must be the root defaults",
-  );
+  assert.ok(tokens.includes(":root {"), "Light tokens must be root defaults");
   assert.ok(
     tokens.includes(':root[data-theme="dark"]'),
     "Dark tokens must be scoped to the document theme",
   );
 });
 
-test("Theme changes are revealed locally through non-translucent page snapshots", () => {
+test("Theme changes are revealed locally through a masked old-theme copy", () => {
   const paintStyles = readProjectFile("styles/theme-transition.css");
   const accessibilityStyles = readProjectFile("styles/accessibility.css");
   const provider = readProjectFile("context/ThemeContext.tsx");
@@ -98,7 +98,7 @@ test("Theme changes are revealed locally through non-translucent page snapshots"
   assert.match(nextConfig, /turbopack:\s*\{\s*root:\s*projectRoot/);
 });
 
-test("Paint drops are reproducible, varied, scattered, and arrive throughout the viewport", () => {
+test("A single impact lands in the exact centre of the viewport", () => {
   const first = createThemeTransition("dark", 1440, 900, seededRandom(42));
   assert.deepEqual(
     first,
@@ -109,31 +109,43 @@ test("Paint drops are reproducible, varied, scattered, and arrive throughout the
     createThemeTransition("dark", 1440, 900, seededRandom(99)),
   );
   assert.equal(first.theme, "dark");
-  assert.equal(first.drops.length, THEME_DROP_COUNT);
-  assert.ok(THEME_DROP_COUNT >= 48);
-  assert.ok(new Set(first.drops.map((drop) => drop.coreRadius)).size > 32);
-  assert.ok(
-    new Set(first.drops.map((drop) => JSON.stringify(drop.outline))).size > 32,
-  );
+  assert.deepEqual(first.origin, { x: 720, y: 450 });
 
-  const cells = new Set<string>();
-  for (const drop of first.drops) {
-    assert.ok(drop.centerX >= 0 && drop.centerX < first.width);
-    assert.ok(drop.centerY >= 0 && drop.centerY < first.height);
-    assert.ok(drop.coreRadius > 0);
-    assert.ok(drop.delay >= 0 && drop.delay < THEME_TRANSITION_DURATION_MS);
-    assert.equal(drop.outline.length, 28);
-    assert.ok(drop.specks.length >= 5 && drop.specks.length <= 9);
-    cells.add(
-      `${Math.floor(drop.centerX / (1440 / THEME_DROP_COLUMNS))}-${Math.floor(drop.centerY / (900 / THEME_DROP_ROWS))}`,
-    );
+  const { splash } = first;
+  assert.ok(splash.shapes.length >= 6 && splash.shapes.length <= 9);
+  assert.ok(splash.coreRadius > 0);
+
+  // Nothing has splash beyond the centre: no drops scattered across the page.
+  for (const shape of splash.shapes) {
+    for (const point of shape) {
+      const distance = Math.hypot(
+        point.x - first.origin.x,
+        point.y - first.origin.y,
+      );
+      assert.ok(
+        distance <= splash.coreRadius * 7,
+        `Splash point ${distance} escaped the centre`,
+      );
+    }
   }
-  assert.equal(cells.size, THEME_DROP_COLUMNS * THEME_DROP_ROWS);
-  assert.ok(first.drops.filter((drop) => drop.delay <= 250).length >= 24);
-  assert.ok(first.drops.some((drop) => drop.delay > 450));
+
+  // The impact itself is irregular, never a plain circle.
+  const main = splash.shapes[0];
+  const radii = main.map((point) =>
+    Math.hypot(point.x - first.origin.x, point.y - first.origin.y),
+  );
+  assert.ok(Math.max(...radii) / Math.min(...radii) > 1.3);
 });
 
-test("Static splatters guarantee full coverage without growth or a finishing sheet, even at extreme RNG/viewport sizes", () => {
+test("The wave is centred, monotonic and clears every corner in every viewport", () => {
+  assert.equal(themeWaveProgress(0), 0);
+  assert.equal(themeWaveProgress(-10), 0);
+  for (let elapsed = 0; elapsed <= THEME_WAVE_HOLD_MS; elapsed += 5) {
+    assert.equal(themeWaveProgress(elapsed), 0, "The impact lands alone");
+  }
+  assert.equal(themeWaveProgress(THEME_TRANSITION_DURATION_MS), 1);
+  assert.equal(themeWaveProgress(THEME_TRANSITION_DURATION_MS + 500), 1);
+
   for (const [width, height] of [
     [1, 1],
     [390, 844],
@@ -142,34 +154,41 @@ test("Static splatters guarantee full coverage without growth or a finishing she
     [4000, 300],
     [300, 4000],
   ]) {
-    for (const random of [
-      seededRandom(42),
-      seededRandom(99),
-      () => 0,
-      () => 0.999999,
-    ]) {
+    for (const random of [seededRandom(42), () => 0, () => 0.999999]) {
       const transition = createThemeTransition("light", width, height, random);
-      for (let row = 0; row < THEME_DROP_ROWS; row += 1) {
-        for (let column = 0; column < THEME_DROP_COLUMNS; column += 1) {
-          const left = (column * width) / THEME_DROP_COLUMNS;
-          const right = ((column + 1) * width) / THEME_DROP_COLUMNS;
-          const top = (row * height) / THEME_DROP_ROWS;
-          const bottom = ((row + 1) * height) / THEME_DROP_ROWS;
-          // A disk is convex: containing all four corners proves it contains
-          // the entire cell, not merely sampled pixels or an estimated percent.
+      assert.equal(transition.origin.x, width / 2);
+      assert.equal(transition.origin.y, height / 2);
+
+      let previous = -1;
+      for (let elapsed = 0; elapsed <= THEME_TRANSITION_DURATION_MS; elapsed += 20) {
+        const radius = themeWaveRadius(elapsed, transition.maxRadius);
+        assert.ok(radius >= previous, "The wave never retreats");
+        previous = radius;
+        assert.ok(radius <= transition.maxRadius);
+      }
+
+      const finalRadius = themeWaveRadius(
+        THEME_TRANSITION_DURATION_MS,
+        transition.maxRadius,
+      );
+      assert.equal(finalRadius, transition.maxRadius);
+
+      for (const [x, y] of [
+        [0, 0],
+        [width, 0],
+        [0, height],
+        [width, height],
+      ]) {
+        const distance = Math.hypot(
+          x - transition.origin.x,
+          y - transition.origin.y,
+        );
+        for (let step = 0; step < 64; step += 1) {
+          const factor = themeWaveFactor((step / 64) * Math.PI * 2);
+          assert.ok(factor >= THEME_WAVE_MIN_FACTOR - 1e-9);
           assert.ok(
-            transition.drops.some((drop) =>
-              [
-                [left, top],
-                [right, top],
-                [left, bottom],
-                [right, bottom],
-              ].every(
-                ([x, y]) =>
-                  Math.hypot(x - drop.centerX, y - drop.centerY) + 1 <
-                  drop.coreRadius,
-              ),
-            ),
+            finalRadius * factor >= distance,
+            "The final frame must clear the whole viewport",
           );
         }
       }
@@ -177,57 +196,19 @@ test("Static splatters guarantee full coverage without growth or a finishing she
   }
 });
 
-test("Rounded irregular contours enclose their guaranteed coverage core", () => {
-  const transition = createThemeTransition("dark", 1440, 900, seededRandom(8));
-  for (const drop of transition.drops) {
-    const points = drop.outline;
-    const distances = points.map((point) =>
-      Math.hypot(point.x - drop.centerX, point.y - drop.centerY),
-    );
-    assert.ok(
-      Math.max(...distances) / Math.min(...distances) > 1.3,
-      "A splatter is not a circular disk",
-    );
-    for (let index = 0; index < points.length; index += 1) {
-      const previous = points[(index + points.length - 1) % points.length];
-      const control = points[index];
-      const next = points[(index + 1) % points.length];
-      for (let t = 0; t <= 1; t += 0.05) {
-        const x =
-          ((1 - t) ** 2 * (previous.x + control.x)) / 2 +
-          2 * (1 - t) * t * control.x +
-          (t ** 2 * (control.x + next.x)) / 2;
-        const y =
-          ((1 - t) ** 2 * (previous.y + control.y)) / 2 +
-          2 * (1 - t) * t * control.y +
-          (t ** 2 * (control.y + next.y)) / 2;
-        assert.ok(
-          Math.hypot(x - drop.centerX, y - drop.centerY) >= drop.coreRadius,
-        );
-      }
-    }
-  }
-});
-
-test("Ink accumulates only through new full-size impacts; landed splatters never grow or redraw", () => {
+test("Ink only accumulates: the impact is stamped once and the front only advances", () => {
   const transition = createThemeTransition("dark", 800, 600, seededRandom(7));
-  const original = structuredClone(transition);
-  let cursor = 0;
+  let cursor = THEME_WAVE_START;
   let fills = 0;
   const context = {
     fillStyle: "",
     beginPath() {},
     moveTo() {},
+    lineTo() {},
     quadraticCurveTo() {},
     closePath() {},
     fill() {
       fills += 1;
-    },
-    arc() {
-      assert.fail("No circular drops");
-    },
-    scale() {
-      assert.fail("No growth or scaling of splatters");
     },
     clearRect() {
       assert.fail("Cumulative ink must never be erased");
@@ -235,65 +216,57 @@ test("Ink accumulates only through new full-size impacts; landed splatters never
     fillRect() {
       assert.fail("No opaque finishing rectangle");
     },
+    scale() {
+      assert.fail("No scaling of the reveal");
+    },
   } as unknown as CanvasRenderingContext2D;
 
+  const impact = drawThemePaintFrame(context, transition, 0, cursor);
+  assert.equal(impact.splashed, true);
+  assert.equal(impact.radius, 0);
+  assert.equal(fills, transition.splash.shapes.length);
+  cursor = impact;
+
+  const repeated = drawThemePaintFrame(context, transition, 0, cursor);
+  assert.equal(
+    fills,
+    transition.splash.shapes.length,
+    "A repeated frame adds no ink",
+  );
+  cursor = repeated;
+
   for (
-    let elapsed = 0;
+    let elapsed = 16;
     elapsed <= THEME_TRANSITION_DURATION_MS;
     elapsed += 16
   ) {
-    const previous = cursor;
     const before = fills;
     cursor = drawThemePaintFrame(context, transition, elapsed, cursor);
     assert.equal(
-      cursor,
-      transition.drops.filter((drop) => drop.delay <= elapsed).length,
-    );
-    assert.equal(
       fills - before,
-      transition.drops
-        .slice(previous, cursor)
-        .reduce((sum, drop) => sum + 1 + drop.specks.length, 0),
-    );
-    drawThemePaintFrame(context, transition, elapsed, cursor);
-    const after = fills;
-    drawThemePaintFrame(context, transition, elapsed, cursor);
-    assert.equal(
-      fills,
-      after,
-      "A repeated frame must not change existing ink, even its antialiased edges",
+      elapsed > THEME_WAVE_HOLD_MS ? 1 : 0,
+      "One wavefront stamp per frame once the impact has landed",
     );
   }
-  assert.equal(cursor, THEME_DROP_COUNT);
-  assert.deepEqual(transition, original, "Geometry never changes with time");
-  assert.equal(context.fillStyle, "#ffffff");
+
+  const finalCursor = drawThemePaintFrame(
+    context,
+    transition,
+    THEME_TRANSITION_DURATION_MS,
+    cursor,
+  );
+  const settled = fills;
+  drawThemePaintFrame(
+    context,
+    transition,
+    THEME_TRANSITION_DURATION_MS,
+    finalCursor,
+  );
+  drawThemePaintFrame(context, transition, 0, finalCursor);
+  assert.equal(fills, settled, "A stale frame cannot smear the front");
 });
 
-test("An individual splatter has the exact same full-size path at impact and later", () => {
-  const transition = createThemeTransition("light", 800, 600, seededRandom(18));
-  const drop = transition.drops[20];
-  transition.drops = [drop];
-  const commands: number[][] = [];
-  const context = {
-    beginPath() {},
-    closePath() {},
-    fill() {},
-    moveTo(...args: number[]) {
-      commands.push(args);
-    },
-    quadraticCurveTo(...args: number[]) {
-      commands.push(args);
-    },
-  } as unknown as CanvasRenderingContext2D;
-  assert.equal(drawThemePaintFrame(context, transition, drop.delay - 1), 0);
-  assert.equal(commands.length, 0);
-  assert.equal(drawThemePaintFrame(context, transition, drop.delay), 1);
-  const impact = commands.splice(0);
-  drawThemePaintFrame(context, transition, THEME_TRANSITION_DURATION_MS);
-  assert.deepEqual(commands, impact);
-});
-
-test("Canvas masks advance via rAF, remain detached, and release frames/styles on completion or interruption", () => {
+test("Canvas masks advance via rAF, stay detached, and release on completion", () => {
   const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   const originalDocument = Object.getOwnPropertyDescriptor(
     globalThis,
@@ -313,6 +286,7 @@ test("Canvas masks advance via rAF, remain detached, and release frames/styles o
     scale() {},
     beginPath() {},
     moveTo() {},
+    lineTo() {},
     quadraticCurveTo() {},
     closePath() {},
     fill() {},
@@ -369,7 +343,7 @@ test("Canvas masks advance via rAF, remain detached, and release frames/styles o
     );
     const paint = createThemePaint(transition, target);
     assert.ok(
-      canvas.width * canvas.height < 2_005_000,
+      canvas.width * canvas.height < 1_405_000,
       "Bound high-DPI encoding cost",
     );
     assert.equal(
@@ -383,6 +357,7 @@ test("Canvas masks advance via rAF, remain detached, and release frames/styles o
       0,
       "The opaque CSS fallback preserves the old snapshot before the first frame",
     );
+
     let completed = false;
     paint.play(() => {
       completed = true;
@@ -390,12 +365,14 @@ test("Canvas masks advance via rAF, remain detached, and release frames/styles o
     });
     paint.play(() => assert.fail("Cannot start two loops"));
     assert.equal(callbacks.size, 1);
+
     advance(performance.now() + 10);
     assert.equal(
       values.get("mask-image"),
       'url("data:image/png;base64,procedural")',
     );
     assert.equal(values.get("-webkit-mask-image"), values.get("mask-image"));
+
     advance(performance.now() + THEME_TRANSITION_DURATION_MS + 100);
     assert.equal(
       completed,
@@ -447,7 +424,6 @@ test("Global CSS is split into named style responsibilities", () => {
     "navigation.css",
     "sections.css",
     "theme-transition.css",
-    "responsive.css",
     "accessibility.css",
   ]) {
     assert.ok(

@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
-import { ScrambleText } from "@/components/ui/ScrambleText";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const SECTIONS = [
@@ -42,7 +41,7 @@ export function SideRail() {
         setMenuOpen(false);
     };
     const onResize = () => {
-      if (window.innerWidth > 900) setMenuOpen(false);
+      if (window.innerWidth > 980) setMenuOpen(false);
     };
     document.addEventListener("keydown", onKeyDown);
     document.addEventListener("pointerdown", onPointerDown);
@@ -62,9 +61,8 @@ export function SideRail() {
       animationFrame = null;
 
       const scrollY = window.scrollY;
-      const scrollHeight = document.documentElement.scrollHeight;
-      const innerHeight = window.innerHeight;
-      const maxScroll = scrollHeight - innerHeight;
+      const maxScroll =
+        document.documentElement.scrollHeight - window.innerHeight;
       const progress =
         maxScroll > 0
           ? Math.max(0, Math.min(100, Math.round((scrollY / maxScroll) * 100)))
@@ -79,7 +77,7 @@ export function SideRail() {
           : SECTIONS.reduce<string>((current, { id }) => {
               const section = document.getElementById(id);
               return section &&
-                section.getBoundingClientRect().top <= innerHeight * 0.38
+                section.getBoundingClientRect().top <= window.innerHeight * 0.4
                 ? id
                 : current;
             }, "");
@@ -99,9 +97,7 @@ export function SideRail() {
     window.addEventListener("resize", handleScroll);
 
     return () => {
-      if (animationFrame !== null) {
-        window.cancelAnimationFrame(animationFrame);
-      }
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleScroll);
     };
@@ -130,7 +126,10 @@ export function SideRail() {
             AU<span className="monogram-dot">.</span>
           </span>
         </span>
-        <span className="rail-name">Azam Usman</span>
+        <span className="rail-identity">
+          <span className="rail-name">Azam Usman</span>
+          <span className="rail-role">{t.meta.role}</span>
+        </span>
       </a>
 
       <div className="rail-progress" aria-hidden="true">
@@ -152,9 +151,7 @@ export function SideRail() {
             aria-current={activeSection === section.id ? "location" : undefined}
           >
             <span className="rail-number">{section.num}</span>
-            <span className="rail-label">
-              <ScrambleText text={t.nav[section.navKey]} />
-            </span>
+            <span className="rail-label">{t.nav[section.navKey]}</span>
           </a>
         ))}
       </nav>
@@ -164,7 +161,7 @@ export function SideRail() {
 
         <div className="rail-bottom-meta">
           <LanguageToggle />
-          <span className="rail-location">MAPUTO · MZ</span>
+          <span className="rail-location">Maputo · GMT+2</span>
         </div>
 
         <button

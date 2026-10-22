@@ -7,8 +7,8 @@ html.theme-transitioning *::after {
 }
 
 /* A visual-only copy of the OLD theme above the real, interactive NEW theme.
-   Canvas erases this mask with stationary splatters. Both backgrounds and
-   glyphs remain visible, without color inversion or native snapshot APIs. */
+   A canvas erases this mask from the centre outwards: one impact, then a wave.
+   Both backgrounds and glyphs stay visible, without colour inversion. */
 .theme-snapshot {
   position: fixed;
   inset: 0;

@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-const title = "Azam Usman — Desenvolvedor de Software";
+const title = "Azam Usman — Engenheiro de Software";
 const description =
-  "Da interface à infraestrutura. Portfólio de Azam Usman: aplicações móveis, backend e sistemas completos. Maputo, Moçambique.";
+  "Do ecrã ao servidor. Aplicações móveis em Flutter, serviços backend em Go e Java, e infraestrutura em contentores. Maputo, Moçambique.";
 
 export const metadata: Metadata = {
   title,
   description,
+  applicationName: "Azam Usman",
   openGraph: {
     title,
     description,
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary", title, description },
   authors: [{ name: "Azam Usman" }],
+  creator: "Azam Usman",
   keywords: [
     "Azam Usman",
     "Engenheiro de Software",
@@ -31,6 +33,16 @@ export const metadata: Metadata = {
     "Maputo",
     "Moçambique",
   ],
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fafaf7" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d0e11" },
+  ],
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({

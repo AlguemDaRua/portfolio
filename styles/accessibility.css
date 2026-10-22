@@ -1,72 +1,68 @@
+/* Reduced motion never removes meaning: only the decorative motion. */
 @media (prefers-reduced-motion: reduce) {
   html {
-    scroll-behavior: auto !important;
+    scroll-behavior: auto;
   }
+
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .status-pill .status-dot,
+  .hero-scroll svg,
+  .au-pill {
+    animation: none !important;
   }
 }
 
 @media (forced-colors: active) {
+  .au-card,
+  .contact-panel {
+    border: 1px solid CanvasText;
+  }
+
+  .status-dot {
+    background: CanvasText;
+  }
+
   .theme-switch button.active,
   .rail-nav a.active {
-    outline: 1px solid Highlight;
-  }
-  .primary-link,
-  .resume-btn.primary {
-    border: 1px solid ButtonText;
+    outline: 1px solid CanvasText;
   }
 }
 
 @media print {
   .side-rail,
   .back-to-top,
-  .skip-link,
-  .hero-actions,
-  .copy-btn,
-  .hero-bottom a {
+  .theme-snapshot,
+  .hero-visual {
     display: none !important;
   }
+
   .site-main {
     margin: 0;
   }
-  .page-wrap {
-    width: 100%;
-  }
+
+  .section,
   .hero {
-    min-height: auto;
+    padding-block: 24px;
+    min-height: 0;
+    border-color: #ccc;
   }
-  .hero-content {
-    padding-block: 32px;
+
+  .contact-panel {
+    border: 1px solid #ccc;
+    background: none;
+    color: #000;
   }
-  .hero h1 {
-    font-size: 48px;
-  }
-  .project-row,
-  .resume-card,
-  .skill-row {
-    break-inside: avoid;
-  }
-  .site-shell {
-    --section-space: 32px;
-  }
-  :root[data-theme] {
-    color-scheme: light;
-    --paper: #fff;
-    --ink: #111;
-    --strong: #111;
-    --muted: #444;
-    --body-text: #333;
-    --body-muted: #444;
-    --meta: #555;
-    --soft: #fff;
-    --line: #ccc;
-    --accent: #333;
-    --inverse-text: #fff;
+
+  .contact-panel .contact-copy > p,
+  .contact-note {
+    color: #333;
   }
 }

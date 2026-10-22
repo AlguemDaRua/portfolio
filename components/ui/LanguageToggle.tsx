@@ -9,7 +9,7 @@ export function LanguageToggle() {
     <div
       className="language-switch"
       role="group"
-      aria-label="Selecionar idioma / Select language"
+      aria-label="Seleccionar idioma / Select language"
     >
       <button
         type="button"
@@ -20,7 +20,6 @@ export function LanguageToggle() {
       >
         PT
       </button>
-      <span aria-hidden="true">/</span>
       <button
         type="button"
         className={locale === "en" ? "active" : ""}

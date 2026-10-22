@@ -7,19 +7,12 @@ export interface Project {
   year: string;
   description: string;
   tags: string[];
-  link?: string;
-  github?: string;
 }
 
 export interface SkillGroup {
   label: string;
+  summary: string;
   skills: string[];
-}
-
-export interface Education {
-  degree: string;
-  institution: string;
-  period: string;
 }
 
 export interface ResumeCard {
@@ -33,7 +26,18 @@ export interface ResumeCard {
   viewLabel: string;
 }
 
+export interface Fact {
+  label: string;
+  value: string;
+  note: string;
+}
+
 export interface TranslationContent {
+  meta: {
+    role: string;
+    location: string;
+    edition: string;
+  };
   nav: {
     home: string;
     label: string;
@@ -54,24 +58,23 @@ export interface TranslationContent {
     darkAction: string;
   };
   hero: {
-    eyebrow: string;
-    edition: string;
-    titleAccent: string;
+    available: string;
     title: string;
+    titleAccent: string;
     text: string;
     work: string;
-    about: string;
-    cv: string;
+    resume: string;
     focus: string;
+    scroll: string;
+    cardLabel: string;
+    cardStamp: string;
+    stack: string[];
   };
   about: {
     label: string;
     title: string;
     text: string;
-    educationLabel: string;
-    education: Education;
-    locationLabel: string;
-    location: string;
+    facts: Fact[];
   };
   work: {
     label: string;
@@ -84,6 +87,7 @@ export interface TranslationContent {
   skills: {
     label: string;
     title: string;
+    intro: string;
     groups: SkillGroup[];
   };
   cv: {
@@ -100,6 +104,7 @@ export interface TranslationContent {
     copyEmail: string;
     copied: string;
     copyError: string;
+    availability: string;
     footer: string;
     backTop: string;
   };

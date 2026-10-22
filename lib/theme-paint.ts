@@ -5,28 +5,52 @@ export interface PaintPoint {
   y: number;
 }
 
-export interface ThemeDrop {
-  centerX: number;
-  centerY: number;
-  /** Guaranteed interior of the irregular contour, NOT a circle we draw. */
+export interface ThemeSplash {
+  /** Guaranteed interior of the central impact, never a drawn circle. */
   coreRadius: number;
-  delay: number;
-  outline: PaintPoint[];
-  specks: PaintPoint[][];
+  /** One irregular impact plus a handful of detached flecks. */
+  shapes: PaintPoint[][];
 }
 
 export interface ThemeTransition {
   theme: ThemeMode;
   width: number;
   height: number;
-  drops: ThemeDrop[];
+  /** The single point where the theme change lands: the viewport centre. */
+  origin: PaintPoint;
+  splash: ThemeSplash;
+  /** Distance the wave must travel to clear the farthest corner. */
+  maxRadius: number;
 }
 
-export const THEME_DROP_COLUMNS = 16;
-export const THEME_DROP_ROWS = 12;
-export const THEME_DROP_COUNT = THEME_DROP_COLUMNS * THEME_DROP_ROWS * 2;
-export const THEME_TRANSITION_DURATION_MS = 1_600;
-const MASK_PIXEL_BUDGET = 2_000_000;
+export interface WaveCursor {
+  radius: number;
+  splashed: boolean;
+}
+
+/** Total time for the impact plus the wavefront that follows it. */
+export const THEME_TRANSITION_DURATION_MS = 900;
+
+/** The impact lands alone for a beat before the wave starts moving. */
+export const THEME_WAVE_HOLD_MS = 110;
+
+/** Resolution of the wavefront outline. */
+export const THEME_WAVE_SEGMENTS = 180;
+
+/** Two harmonics keep the front liquid rather than circular. */
+export const THEME_WAVE_WOBBLE = 0.03;
+export const THEME_WAVE_DETAIL = 0.018;
+
+/** Smallest radius multiplier the wavefront can have at any angle. */
+export const THEME_WAVE_MIN_FACTOR =
+  1 - THEME_WAVE_WOBBLE - THEME_WAVE_DETAIL;
+
+/** Headroom so the wave always clears the corners at full progress. */
+const CORNER_HEADROOM = 1.08;
+
+const MASK_PIXEL_BUDGET = 1_400_000;
+
+export const THEME_WAVE_START: WaveCursor = { radius: 0, splashed: false };
 
 function between(random: () => number, min: number, max: number): number {
   return min + random() * (max - min);
@@ -37,51 +61,49 @@ function createOutline(
   y: number,
   coreRadius: number,
   random: () => number,
-  count = 28,
+  count: number,
 ): PaintPoint[] {
   const step = (Math.PI * 2) / count;
   const phase = random() * Math.PI * 2;
-  // Every quadratic segment lies inside the convex hull of three consecutive
-  // radial points. This padding keeps that hull outside the guaranteed core,
-  // even where rounding cuts into the irregular outline.
+  // Every quadratic segment sits inside the hull of three radial points, so
+  // this padding keeps the rounded contour outside its guaranteed interior.
   const minimumRadius = coreRadius / Math.cos(step);
   return Array.from({ length: count }, (_, index) => {
     const angle = phase + index * step;
-    const lobe = 0.16 * (1 + Math.sin(index * step * 3 + phase));
-    const spur = random() < 0.18 ? between(random, 0.5, 1.3) : 0;
-    const radius = minimumRadius * (1 + lobe + random() * 0.5 + spur);
+    const lobe = 0.14 * (1 + Math.sin(index * step * 3 + phase));
+    const spur = random() < 0.16 ? between(random, 0.35, 0.9) : 0;
+    const radius = minimumRadius * (1 + lobe + random() * 0.32 + spur);
     return { x: x + Math.cos(angle) * radius, y: y + Math.sin(angle) * radius };
   });
 }
 
-function createDrop(
-  centerX: number,
-  centerY: number,
-  coreRadius: number,
-  delay: number,
+function createSplash(
+  origin: PaintPoint,
+  unit: number,
   random: () => number,
-): ThemeDrop {
-  return {
-    centerX,
-    centerY,
-    coreRadius,
-    delay,
-    outline: createOutline(centerX, centerY, coreRadius, random),
-    // Detached, asymmetric flecks give each impact a splashed-ink silhouette.
-    specks: Array.from({ length: Math.floor(between(random, 5, 10)) }, () => {
-      const angle = random() * Math.PI * 2;
-      const distance = coreRadius * between(random, 1.8, 3.2);
-      return createOutline(
-        centerX + Math.cos(angle) * distance,
-        centerY + Math.sin(angle) * distance,
-        coreRadius * between(random, 0.035, 0.12),
+): ThemeSplash {
+  const coreRadius = unit * 0.062;
+  const shapes: PaintPoint[][] = [
+    createOutline(origin.x, origin.y, coreRadius, random, 26),
+  ];
+  const flecks = Math.floor(between(random, 5, 8));
+  for (let index = 0; index < flecks; index += 1) {
+    const angle = (index / flecks) * Math.PI * 2 + random() * 0.9;
+    const distance = coreRadius * between(random, 1.35, 2.5);
+    shapes.push(
+      createOutline(
+        origin.x + Math.cos(angle) * distance,
+        origin.y + Math.sin(angle) * distance,
+        coreRadius * between(random, 0.16, 0.3),
         random,
-        8,
-      );
-    }),
-  };
+        10,
+      ),
+    );
+  }
+  return { coreRadius, shapes };
 }
 
+/** Geometry only: a single central impact and the distance its wave must cover. */
 export function createThemeTransition(
   theme: ThemeMode,
   viewportWidth: number,
@@ -90,45 +112,53 @@ export function createThemeTransition(
 ): ThemeTransition {
   const width = Math.max(1, viewportWidth);
   const height = Math.max(1, viewportHeight);
-  const cellWidth = width / THEME_DROP_COLUMNS;
-  const cellHeight = height / THEME_DROP_ROWS;
-  const coverageCount = THEME_DROP_COLUMNS * THEME_DROP_ROWS;
-  const cells = Array.from({ length: coverageCount }, (_, index) => index);
-  for (let index = cells.length - 1; index > 0; index -= 1) {
-    const swap = Math.floor(random() * (index + 1));
-    [cells[index], cells[swap]] = [cells[swap], cells[index]];
-  }
+  const origin = { x: width / 2, y: height / 2 };
+  const corner = Math.hypot(
+    Math.max(origin.x, width - origin.x),
+    Math.max(origin.y, height - origin.y),
+  );
+  return {
+    theme,
+    width,
+    height,
+    origin,
+    splash: createSplash(origin, Math.min(width, height), random),
+    maxRadius: corner * CORNER_HEADROOM + 2,
+  };
+}
 
-  // Random full-size impacts, not growing blobs. The guaranteed interior of
-  // each coverage stamp contains its cell; their union eventually covers the
-  // viewport without a giant finishing shape or a last-frame opaque fill.
-  const drops = cells.map((cell, arrival) => {
-    const x = between(random, 0.1, 0.9) * cellWidth;
-    const y = between(random, 0.1, 0.9) * cellHeight;
-    return createDrop(
-      (cell % THEME_DROP_COLUMNS) * cellWidth + x,
-      Math.floor(cell / THEME_DROP_COLUMNS) * cellHeight + y,
-      Math.hypot(Math.max(x, cellWidth - x), Math.max(y, cellHeight - y)) + 3,
-      350 + ((arrival + random() * 0.8) / coverageCount) * 1_150,
-      random,
-    );
-  });
+/** Eased 0→1 progress of the wavefront, after the impact has been seen. */
+export function themeWaveProgress(elapsed: number): number {
+  const travel = THEME_TRANSITION_DURATION_MS - THEME_WAVE_HOLD_MS;
+  const t = Math.min(
+    1,
+    Math.max(0, (elapsed - THEME_WAVE_HOLD_MS) / travel),
+  );
+  // Smooth acceleration out of the impact, then a calm settle at the edges.
+  return t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
+}
 
-  // Fine and medium spray falls throughout the effect, including the first
-  // frame. Larger coverage stamps join it later, all in shuffled locations.
-  for (let index = 0; index < coverageCount; index += 1) {
-    drops.push(
-      createDrop(
-        random() * width,
-        random() * height,
-        Math.min(cellWidth, cellHeight) * between(random, 0.16, 0.65),
-        (index / coverageCount) * 1_500,
-        random,
-      ),
-    );
-  }
-  drops.sort((left, right) => left.delay - right.delay);
-  return { theme, width, height, drops };
+/** Radius the wavefront has reached at a given elapsed time. */
+export function themeWaveRadius(elapsed: number, maxRadius: number): number {
+  return themeWaveProgress(elapsed) * maxRadius;
+}
+
+/**
+ * Angular shape of the front. The wobble fades in as the front grows, so the
+ * first rings look like liquid rather than a star; full amplitude is reached
+ * well before the wave leaves the viewport.
+ */
+export function themeWaveFactor(angle: number, amplitude = 1): number {
+  return (
+    1 +
+    amplitude * THEME_WAVE_WOBBLE * Math.sin(angle * 3 + 1.7) +
+    amplitude * THEME_WAVE_DETAIL * Math.sin(angle * 7 - 0.4)
+  );
+}
+
+/** 0.35 → 1 over the first fifth of the travel. */
+export function themeWaveAmplitude(progress: number): number {
+  return 0.35 + 0.65 * Math.min(1, Math.max(0, progress / 0.2));
 }
 
 function drawOutline(
@@ -152,26 +182,49 @@ function drawOutline(
   context.fill();
 }
 
-/** Returns the cursor to pass to the next frame. Each impact is stamped ONCE. */
+function drawWave(
+  context: CanvasRenderingContext2D,
+  transition: ThemeTransition,
+  radius: number,
+  amplitude: number,
+): void {
+  const { origin } = transition;
+  context.beginPath();
+  for (let index = 0; index < THEME_WAVE_SEGMENTS; index += 1) {
+    const angle = (index / THEME_WAVE_SEGMENTS) * Math.PI * 2;
+    const distance = radius * themeWaveFactor(angle, amplitude);
+    const x = origin.x + Math.cos(angle) * distance;
+    const y = origin.y + Math.sin(angle) * distance;
+    if (index === 0) context.moveTo(x, y);
+    else context.lineTo(x, y);
+  }
+  context.closePath();
+  context.fill();
+}
+
+/**
+ * Erases the old-theme mask for one frame. The impact is stamped once; from
+ * there only the wavefront advances, so the reveal is always monotonic.
+ */
 export function drawThemePaintFrame(
   context: CanvasRenderingContext2D,
   transition: ThemeTransition,
   elapsed: number,
-  nextDrop = 0,
-): number {
+  cursor: WaveCursor = THEME_WAVE_START,
+): WaveCursor {
   context.fillStyle = "#ffffff";
-  while (
-    nextDrop < transition.drops.length &&
-    transition.drops[nextDrop].delay <= elapsed
-  ) {
-    const drop = transition.drops[nextDrop];
-    drawOutline(context, drop.outline);
-    drop.specks.forEach((points) => drawOutline(context, points));
-    nextDrop += 1;
+  let next = cursor;
+
+  if (!cursor.splashed) {
+    transition.splash.shapes.forEach((points) => drawOutline(context, points));
+    next = { radius: 0, splashed: true };
   }
-  // Never erase, scale, interpolate, or redraw existing ink. Only new impacts
-  // change the alpha mask, so a landed splatter is completely stationary.
-  return nextDrop;
+
+  const radius = themeWaveRadius(elapsed, transition.maxRadius);
+  if (radius <= next.radius) return next;
+
+  drawWave(context, transition, radius, themeWaveAmplitude(themeWaveProgress(elapsed)));
+  return { radius, splashed: true };
 }
 
 export interface ThemePaint {
@@ -202,7 +255,7 @@ export function createThemePaint(
   );
 
   // The mask starts opaque: the old themed DOM copy is initially intact.
-  // Each full-size impact punches a hole through it to the real new theme.
+  // The impact and wave punch through it to reveal the real, new theme.
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, transition.width, transition.height);
   context.globalCompositeOperation = "destination-out";
@@ -210,6 +263,7 @@ export function createThemePaint(
   let frame: number | null = null;
   let disposed = false;
   let started = false;
+
   const dispose = () => {
     if (disposed) return;
     disposed = true;
@@ -226,19 +280,18 @@ export function createThemePaint(
       if (disposed || started) return;
       started = true;
       const start = performance.now();
-      let nextDrop = 0;
+      let cursor: WaveCursor = THEME_WAVE_START;
+
       const tick = (now: number) => {
         if (disposed) return;
         try {
           const elapsed = now - start;
-          const previousDrop = nextDrop;
-          nextDrop = drawThemePaintFrame(
-            context,
-            transition,
-            elapsed,
-            nextDrop,
-          );
-          if (nextDrop !== previousDrop) {
+          const previous = cursor;
+          cursor = drawThemePaintFrame(context, transition, elapsed, cursor);
+          if (
+            cursor.radius !== previous.radius ||
+            cursor.splashed !== previous.splashed
+          ) {
             const image = canvas.toDataURL("image/png");
             if (!image.startsWith("data:image/png"))
               throw new Error("Invalid canvas mask");
@@ -249,7 +302,7 @@ export function createThemePaint(
             target.style.setProperty("mask-image", mask);
           }
           // Give the fully erased mask a paint opportunity before removing the
-          // snapshot. No finishing rectangle, crossfade, or color inversion.
+          // snapshot. No finishing rectangle, crossfade, or colour inversion.
           frame = window.requestAnimationFrame(
             elapsed >= THEME_TRANSITION_DURATION_MS ? onComplete : tick,
           );

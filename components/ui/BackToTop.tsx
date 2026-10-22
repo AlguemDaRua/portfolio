@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { ArrowUp } from "./Icons";
+import { useEffect, useState } from "react";
+import { ArrowUp } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 export function BackToTop() {
@@ -9,9 +9,7 @@ export function BackToTop() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setVisible(window.scrollY > 320);
-    };
+    const handleScroll = () => setVisible(window.scrollY > 480);
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -26,7 +24,7 @@ export function BackToTop() {
       title={t.contact.backTop}
       className="back-to-top"
     >
-      <ArrowUp className="w-4 h-4" />
+      <ArrowUp aria-hidden="true" />
     </a>
   );
 }

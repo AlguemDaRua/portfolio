@@ -199,7 +199,7 @@ test("mobile navigation, translation, PDFs and clipboard failure work across eng
     .getByRole("button", { name: "English", exact: true })
     .click();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(live(page).locator("h1")).toContainText("I build");
+  await expect(live(page).locator("h1")).toContainText("From screen");
   const menu = live(page).getByRole("button", { name: "Open navigation" });
   await menu.click();
   await expect(live(page).locator("#site-navigation a").first()).toBeFocused();

@@ -1,8 +1,8 @@
 "use client";
 
+import { Moon, Sun } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme } from "@/context/ThemeContext";
-import { MoonIcon, SunIcon } from "./Icons";
 
 export function ThemeToggle() {
   const { t } = useLanguage();
@@ -18,7 +18,7 @@ export function ThemeToggle() {
         title={t.theme.light}
         onClick={() => changeTheme("light")}
       >
-        <SunIcon />
+        <Sun aria-hidden="true" />
         <span>{t.theme.light}</span>
       </button>
       <button
@@ -29,7 +29,7 @@ export function ThemeToggle() {
         title={t.theme.dark}
         onClick={() => changeTheme("dark")}
       >
-        <MoonIcon />
+        <Moon aria-hidden="true" />
         <span>{t.theme.dark}</span>
       </button>
     </div>

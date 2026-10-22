@@ -1,7 +1,7 @@
 "use client";
 
 import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
-import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { AboutSection } from "@/components/sections/AboutSection";
 import { ContactSection } from "@/components/sections/ContactSection";
 import { HeroSection } from "@/components/sections/HeroSection";
@@ -12,16 +12,15 @@ import { BackToTop } from "@/components/ui/BackToTop";
 import { SideRail } from "./SideRail";
 
 function PortfolioContent() {
-  const { theme } = useTheme();
-  const { locale, t } = useLanguage();
+  const { t } = useLanguage();
 
   return (
-    <div className="site-shell" data-theme={theme}>
+    <div className="site-shell">
       <a className="skip-link" href="#main-content">
         {t.nav.skip}
       </a>
       <SideRail />
-      <main className="site-main" lang={locale} id="main-content" tabIndex={-1}>
+      <main className="site-main" id="main-content" tabIndex={-1}>
         <HeroSection />
         <AboutSection />
         <ProjectsSection />
