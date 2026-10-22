@@ -34,7 +34,6 @@ export interface Fact {
 
 export interface TranslationContent {
   meta: {
-    role: string;
     location: string;
     edition: string;
   };

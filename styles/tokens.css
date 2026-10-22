@@ -19,6 +19,9 @@
   --shadow-lift: rgba(22, 24, 29, 0.1);
   --rail-glow-core: rgba(47, 62, 214, 0.08);
   --rail-glow-spill: rgba(47, 62, 214, 0.045);
+  --rail-hover-bg: #ffffff;
+  --rail-hover-edge: rgba(21, 22, 26, 0.09);
+  --rail-hover-glow: rgba(47, 62, 214, 0.16);
   --card-bg: #17181d;
   --card-bg-soft: #1e2026;
   --card-line: rgba(255, 255, 255, 0.09);
@@ -67,6 +70,9 @@
   --accent-soft: rgba(157, 168, 255, 0.12);
   --rail-glow-core: rgba(199, 208, 255, 0.17);
   --rail-glow-spill: rgba(146, 162, 255, 0.07);
+  --rail-hover-bg: rgba(199, 208, 255, 0.1);
+  --rail-hover-edge: rgba(199, 208, 255, 0.22);
+  --rail-hover-glow: rgba(199, 208, 255, 0.32);
 }
 
 @theme inline {

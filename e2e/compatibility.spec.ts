@@ -148,6 +148,45 @@ for (const width of [390, 1440]) {
   });
 }
 
+test("navigation hover grows the light, never the target under the pointer", async ({
+  page,
+}) => {
+  const rail = live(page).locator(".side-rail");
+  // The header is the name alone; the role line is gone for good.
+  await expect(rail.locator(".rail-brand")).toContainText("Azam Usman");
+  await expect(rail.locator(".rail-role")).toHaveCount(0);
+
+  for (const edge of ["left", "right"] as const) {
+    const link = rail.locator(".rail-nav a").nth(2);
+    const box = (await link.boundingBox())!;
+    // The worst case for a growing target: the pointer sits on the far edge.
+    const x = edge === "left" ? box.x + 1 : box.x + box.width - 1;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(x, y);
+    await page.waitForTimeout(420);
+
+    const after = (await link.boundingBox())!;
+    expect(after).toEqual(box);
+    expect(await link.evaluate((element) => element.matches(":hover"))).toBe(
+      true,
+    );
+    // What grew is the lit layer behind the text: it reaches past the row on
+    // every side while the row itself stays exactly where it was.
+    const pill = await link.evaluate((element) => {
+      const style = getComputedStyle(element, "::before");
+      return {
+        opacity: Number(style.opacity),
+        left: Number.parseFloat(style.left),
+        top: Number.parseFloat(style.top),
+      };
+    });
+    expect(pill.opacity).toBeGreaterThan(0.9);
+    expect(pill.left).toBeLessThan(0);
+    expect(pill.top).toBeLessThan(0);
+    await page.mouse.move(0, 0);
+  }
+});
+
 test("rapid clicks, resize, reduced motion and scrolling leave no stale copies", async ({
   page,
 }) => {

@@ -667,11 +667,36 @@ test("Dark mode is true black and the navigation is the light source", () => {
   // The compact mobile bar keeps the same single source, moved to the top.
   assert.match(base, /@media \(max-width: 980px\)[\s\S]{0,400}at 50% 0%/);
 
-  // Rows grow from their own left edge, so the pointer stays inside.
-  assert.match(navigation, /transform-origin:\s*left center/);
+  // Hover growth is painted on a pointer-transparent layer, so the row keeps
+  // its exact box: the cursor cannot fall off a target that grew.
+  const rowRule = navigation.slice(
+    navigation.indexOf(".rail-nav a {"),
+    navigation.indexOf(".rail-nav a::before"),
+  );
+  assert.doesNotMatch(rowRule, /transform:/, "The row itself never moves");
   assert.match(
     navigation,
-    /\.rail-nav a:hover[\s\S]{0,200}transform:\s*scale\(1\.\d+\)/,
+    /\.rail-nav a::before \{[\s\S]{0,700}pointer-events: none/,
+  );
+  assert.match(
+    navigation.slice(navigation.indexOf(".rail-nav a:hover::before")),
+    /inset:\s*-\d+px\s*-\d+px/,
+  );
+
+  // The monogram lifts, it never tilts.
+  const brandHover = navigation.slice(
+    navigation.indexOf(".rail-brand:hover .rail-monogram"),
+  );
+  assert.doesNotMatch(brandHover.slice(0, 220), /rotate|skew|matrix/);
+
+  // Hovering turns the rail's own light up, in the theme's palette.
+  assert.match(tokens, /--rail-hover-glow/);
+  assert.match(navigation, /\.side-rail:has\(\.rail-nav a:hover\)/);
+
+  // The rail header carries the name alone.
+  assert.doesNotMatch(
+    readProjectFile("components/layout/SideRail.tsx"),
+    /rail-role|meta\.role/,
   );
 });
 

@@ -21,6 +21,25 @@
     0 0 110px -30px var(--rail-glow-core);
   backdrop-filter: blur(16px) saturate(150%);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
+  transition:
+    box-shadow 440ms var(--ease-out),
+    border-color 320ms var(--ease);
+}
+
+/* Touching the navigation turns its light up a notch — same single source,
+   deeper reach into the page. Only where the rail actually floats over the
+   canvas, never on the compact mobile bar. */
+@media (min-width: 981px) {
+  .side-rail:has(.rail-nav a:hover),
+  .side-rail:has(.rail-nav a:focus-visible),
+  .side-rail:has(.rail-brand:hover) {
+    border-color: var(--rail-hover-edge);
+    box-shadow:
+      0 24px 60px -44px var(--shadow-lift),
+      0 0 120px -6px var(--rail-hover-glow),
+      0 0 300px -40px var(--rail-hover-glow),
+      0 0 560px -90px var(--rail-glow-spill);
+  }
 }
 
 .side-rail::-webkit-scrollbar {
@@ -46,11 +65,17 @@
   font-size: 14px;
   font-weight: 560;
   letter-spacing: -0.06em;
-  transition: transform 260ms var(--ease);
+  transition:
+    transform 300ms var(--ease-out),
+    box-shadow 300ms var(--ease);
 }
 
+/* Lifts and glows, never tilts. */
 .rail-brand:hover .rail-monogram {
-  transform: rotate(-6deg) scale(0.96);
+  transform: scale(1.05);
+  box-shadow:
+    0 0 0 1px var(--rail-hover-edge),
+    0 12px 26px -14px var(--rail-hover-glow);
 }
 
 .monogram-dot {
@@ -77,15 +102,6 @@
   line-height: 1.3;
 }
 
-.rail-role {
-  color: var(--meta);
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.06em;
-  line-height: 1.4;
-  text-transform: uppercase;
-}
-
 .rail-progress {
   position: relative;
   height: 1px;
@@ -108,6 +124,7 @@
 
 .rail-nav a {
   position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   gap: 11px;
@@ -115,13 +132,45 @@
   padding: 8px 9px;
   border-radius: 9px;
   color: var(--body-muted);
-  /* Grows from its own left edge, so the pointer never leaves the row that
-     grew — a little more room to read, no mouse chase. */
-  transform-origin: left center;
+  transition: color 180ms var(--ease);
+}
+
+/* The row itself never moves: what grows is the lit layer behind it, on its
+   own transform, with the pointer ignored. The target keeps its exact size and
+   position, so it is impossible to fall off it while it grows — the light
+   spreads instead. */
+.rail-nav a::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  /* Geometry, not scale: the hairline border and the glow stay pixel-crisp
+     while the layer travels past the row on every side. */
   transition:
-    transform 240ms var(--ease-out),
-    color 180ms var(--ease),
-    background-color 180ms var(--ease);
+    opacity 200ms var(--ease),
+    inset 340ms var(--ease-out),
+    background-color 220ms var(--ease),
+    border-color 220ms var(--ease),
+    box-shadow 340ms var(--ease-out);
+}
+
+.rail-nav a:hover::before,
+.rail-nav a:focus-visible::before {
+  opacity: 1;
+  /* Past the row on every side, towards the page. */
+  inset: -2px -6px;
+  background: var(--rail-hover-bg);
+  border-color: var(--rail-hover-edge);
+  box-shadow:
+    0 0 0 0.5px var(--rail-hover-edge),
+    0 16px 32px -24px var(--rail-hover-glow),
+    0 0 26px -6px var(--rail-hover-glow),
+    inset 0 1px 0 var(--rail-hover-edge);
 }
 
 .rail-nav a::after {
@@ -132,15 +181,21 @@
   height: 4px;
   border-radius: 50%;
   background: transparent;
-  transition: background-color 180ms var(--ease);
+  transition:
+    background-color 180ms var(--ease),
+    box-shadow 240ms var(--ease);
 }
 
 .rail-nav a:hover,
 .rail-nav a:focus-visible {
-  z-index: 1;
+  z-index: 2;
   color: var(--text);
-  background: var(--soft);
-  transform: scale(1.06);
+}
+
+.rail-nav a:hover::after,
+.rail-nav a:focus-visible::after {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--rail-hover-glow);
 }
 
 .rail-nav a.active {
@@ -158,6 +213,14 @@
   font-family: var(--font-mono);
   font-size: 9.5px;
   letter-spacing: 0.02em;
+  transition:
+    font-size 300ms var(--ease-out),
+    color 180ms var(--ease);
+}
+
+.rail-nav a:hover .rail-number,
+.rail-nav a:focus-visible .rail-number {
+  font-size: 10px;
 }
 
 .rail-nav a.active .rail-number {
@@ -168,6 +231,16 @@
   font-size: 13px;
   font-weight: 480;
   letter-spacing: -0.01em;
+  transition:
+    font-size 300ms var(--ease-out),
+    color 180ms var(--ease);
+}
+
+/* Slightly larger type to read, drawn crisply: the glyphs are re-set, not
+   scaled, so nothing goes soft at the end of the transition. */
+.rail-nav a:hover .rail-label,
+.rail-nav a:focus-visible .rail-label {
+  font-size: 13.8px;
 }
 
 .rail-bottom {
@@ -362,7 +435,6 @@
     border-radius: 10px;
   }
 
-  .rail-role,
   .rail-location,
   .rail-progress {
     display: none;

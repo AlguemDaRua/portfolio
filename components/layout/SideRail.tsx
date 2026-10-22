@@ -129,7 +129,6 @@ export function SideRail() {
         </span>
         <span className="rail-identity">
           <span className="rail-name">Azam Usman</span>
-          <ScrambleText className="rail-role" text={t.meta.role} as="span" />
         </span>
       </a>
 

@@ -3,7 +3,6 @@ import { ContentDictionary } from "./types";
 export const portfolioContent: ContentDictionary = {
   pt: {
     meta: {
-      role: "Engenheiro de software",
       location: "Maputo, Moçambique",
       edition: "Portfólio · 2026",
     },
@@ -201,7 +200,6 @@ export const portfolioContent: ContentDictionary = {
   },
   en: {
     meta: {
-      role: "Software engineer",
       location: "Maputo, Mozambique",
       edition: "Portfolio · 2026",
     },
